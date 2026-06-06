@@ -1,0 +1,26 @@
+[Unit]
+Description=librespot — Spotify Connect receiver for HomeControl
+After=network-online.target avahi-daemon.service homecontrol-core.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=homecontrol
+EnvironmentFile=/etc/homecontrol/unit.env
+# Zeroconf mode: librespot advertises on the LAN and the user's Spotify app connects —
+# no stored password. --onevent fires our hook on every player event (the Core Service
+# turns those into UI state). Backend defaults to pulseaudio (PipeWire's pulse shim) so
+# Phase 2 plays sound directly; Phase 3 switches HOMECONTROL_LIBRESPOT_BACKEND to "pipe"
+# and points --device at the Snapcast FIFO for synchronized multi-room.
+ExecStart=/usr/bin/librespot \
+  --name "${HOMECONTROL_ROOM}" \
+  --bitrate 320 \
+  --backend ${HOMECONTROL_LIBRESPOT_BACKEND} \
+  --device "${HOMECONTROL_LIBRESPOT_DEVICE}" \
+  --onevent /opt/homecontrol/provisioning/spotify/onevent.sh \
+  --cache /var/lib/homecontrol/librespot-cache
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

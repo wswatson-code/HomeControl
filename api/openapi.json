@@ -1,0 +1,475 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "HomeControl Core Service",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": [
+          "control"
+        ],
+        "summary": "Health",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Api Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/state": {
+      "get": {
+        "tags": [
+          "control"
+        ],
+        "summary": "Get State",
+        "operationId": "get_state_api_state_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Snapshot"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/player/play": {
+      "post": {
+        "tags": [
+          "control"
+        ],
+        "summary": "Play",
+        "operationId": "play_api_player_play_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Snapshot"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/player/pause": {
+      "post": {
+        "tags": [
+          "control"
+        ],
+        "summary": "Pause",
+        "operationId": "pause_api_player_pause_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Snapshot"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/player/next": {
+      "post": {
+        "tags": [
+          "control"
+        ],
+        "summary": "Next Track",
+        "operationId": "next_track_api_player_next_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Snapshot"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/player/previous": {
+      "post": {
+        "tags": [
+          "control"
+        ],
+        "summary": "Previous Track",
+        "operationId": "previous_track_api_player_previous_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Snapshot"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/player/seek": {
+      "post": {
+        "tags": [
+          "control"
+        ],
+        "summary": "Seek",
+        "operationId": "seek_api_player_seek_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeekBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Snapshot"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/player/volume": {
+      "post": {
+        "tags": [
+          "control"
+        ],
+        "summary": "Set Volume",
+        "operationId": "set_volume_api_player_volume_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VolumeBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Snapshot"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "GroupRole": {
+        "type": "string",
+        "enum": [
+          "solo",
+          "leader",
+          "member"
+        ],
+        "title": "GroupRole"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "PlaybackState": {
+        "type": "string",
+        "enum": [
+          "playing",
+          "paused",
+          "stopped",
+          "buffering"
+        ],
+        "title": "PlaybackState"
+      },
+      "PlayerState": {
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/PlaybackState",
+            "default": "stopped"
+          },
+          "track": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Track"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "position_ms": {
+            "type": "integer",
+            "title": "Position Ms",
+            "default": 0
+          },
+          "volume": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Volume",
+            "default": 50
+          },
+          "shuffle": {
+            "type": "boolean",
+            "title": "Shuffle",
+            "default": false
+          },
+          "repeat": {
+            "$ref": "#/components/schemas/RepeatMode",
+            "default": "off"
+          }
+        },
+        "type": "object",
+        "title": "PlayerState",
+        "description": "Everything the now-playing screen needs."
+      },
+      "RepeatMode": {
+        "type": "string",
+        "enum": [
+          "off",
+          "track",
+          "context"
+        ],
+        "title": "RepeatMode"
+      },
+      "SeekBody": {
+        "properties": {
+          "position_ms": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Position Ms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "position_ms"
+        ],
+        "title": "SeekBody"
+      },
+      "Snapshot": {
+        "properties": {
+          "unit": {
+            "$ref": "#/components/schemas/UnitInfo"
+          },
+          "player": {
+            "$ref": "#/components/schemas/PlayerState"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "unit",
+          "player",
+          "version"
+        ],
+        "title": "Snapshot",
+        "description": "Full state returned by GET /api/state and pushed on WS connect."
+      },
+      "Track": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "artist": {
+            "type": "string",
+            "title": "Artist"
+          },
+          "album": {
+            "type": "string",
+            "title": "Album",
+            "default": ""
+          },
+          "artwork_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artwork Url"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "title": "Duration Ms",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "artist"
+        ],
+        "title": "Track"
+      },
+      "UnitInfo": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "room": {
+            "type": "string",
+            "title": "Room"
+          },
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Id"
+          },
+          "role": {
+            "$ref": "#/components/schemas/GroupRole",
+            "default": "solo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "room"
+        ],
+        "title": "UnitInfo",
+        "description": "Identity + multi-room role of this physical unit."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VolumeBody": {
+        "properties": {
+          "volume": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Volume"
+          }
+        },
+        "type": "object",
+        "required": [
+          "volume"
+        ],
+        "title": "VolumeBody"
+      }
+    }
+  }
+}

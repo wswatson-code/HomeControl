@@ -1,0 +1,17 @@
+{
+  "name": "homecontrol-ui",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "HomeControl kiosk UI — 800x480 Svelte app served in Chromium kiosk mode",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "svelte": "^5.56.2",
+    "vite": "^8.0.16"
+  }
+}

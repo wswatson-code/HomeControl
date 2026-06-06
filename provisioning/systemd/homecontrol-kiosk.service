@@ -1,0 +1,17 @@
+[Unit]
+Description=HomeControl Chromium kiosk (800x480 touchscreen)
+After=homecontrol-core.service graphical.target
+Wants=homecontrol-core.service
+
+[Service]
+Type=simple
+User=homecontrol
+# Launch into the Wayland/X session the Pi boots to. labwc (Pi OS Bookworm default
+# compositor) exports WAYLAND_DISPLAY; the kiosk script waits for the Core Service.
+Environment=WAYLAND_DISPLAY=wayland-1
+ExecStart=/opt/homecontrol/provisioning/kiosk/start-kiosk.sh
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=graphical.target

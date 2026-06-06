@@ -1,0 +1,18 @@
+[Unit]
+Description=HomeControl Core Service (orchestrator + API)
+# Avahi gives us mDNS discovery; PipeWire is the audio mixer. Both later-phase, but
+# declaring the ordering now keeps the unit honest as those subsystems land.
+After=network-online.target avahi-daemon.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=homecontrol
+WorkingDirectory=/opt/homecontrol/core
+EnvironmentFile=-/etc/homecontrol/unit.env
+ExecStart=/opt/homecontrol/core/.venv/bin/python -m homecontrol
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
