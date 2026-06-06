@@ -158,7 +158,7 @@ sequenceDiagram
 
 ## Kiosk UI (`ui/`)
 
-Svelte + Vite, fixed 800×480. The Core Service serves the built `dist/` in production; in
+Svelte + Vite, fixed 1024×600. The Core Service serves the built `dist/` in production; in
 dev Vite proxies `/api` and `/ws` to `:8080`.
 
 - **`src/lib/store.js`** — the client mirror. Svelte stores: `connected`, `unit`,
@@ -168,7 +168,7 @@ dev Vite proxies `/api` and `/ws` to `:8080`.
 - **`src/App.svelte`** — header (room + connection dot), `NowPlaying`, reconnect banner.
 - **`src/lib/NowPlaying.svelte`** — artwork, title/artist/album, tap-to-seek progress bar,
   prev/play-pause/next, volume slider — all wired to `commands`.
-- **`src/app.css`** — kiosk baseline (exact 800×480, no scroll/selection/cursor).
+- **`src/app.css`** — kiosk baseline (exact 1024×600, no scroll/selection/cursor).
 
 ## Provisioning model (`provisioning/`)
 

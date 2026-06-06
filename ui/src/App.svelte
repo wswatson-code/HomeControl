@@ -23,8 +23,8 @@
 
 <style>
   main {
-    width: 800px;
-    height: 480px;
+    width: 1024px;
+    height: 600px;
     position: relative;
     display: flex;
     flex-direction: column;

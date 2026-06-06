@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "HomeControl kiosk UI — 800x480 Svelte app served in Chromium kiosk mode",
+  "description": "HomeControl kiosk UI — 1024x600 Svelte app served in Chromium kiosk mode",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

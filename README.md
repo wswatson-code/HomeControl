@@ -1,6 +1,6 @@
 # HomeControl
 
-A Linux appliance for the Raspberry Pi 5 (800×480 touchscreen) that plays Spotify,
+A Linux appliance for the Raspberry Pi 5 (1024×600 touchscreen) that plays Spotify,
 synchronizes playback across rooms, acts as a hands-free voice intercom, controls
 smart-home devices via Home Assistant, and ships with iOS/Android companion apps.
 
@@ -90,6 +90,6 @@ See [`docs/hardware-validation.md`](docs/hardware-validation.md). In short:
 
 ## Requirements
 
-- Raspberry Pi 5 (8GB) + 800×480 touchscreen per unit
+- Raspberry Pi 5 (8GB) + 1024×600 touchscreen per unit
 - Spotify **Premium** (librespot requires it)
 - A Home Assistant instance on a separate host (phase 6.5)

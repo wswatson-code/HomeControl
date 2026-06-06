@@ -26,7 +26,7 @@ OZONE=()
 exec "${CHROMIUM}" \
   --kiosk \
   --app="${CORE_URL}" \
-  --window-size=800,480 \
+  --window-size=1024,600 \
   --window-position=0,0 \
   --noerrdialogs \
   --disable-infobars \

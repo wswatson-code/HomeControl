@@ -5,8 +5,31 @@ Work the gates in order — don't move on until each passes. If a gate fails, se
 **Troubleshooting**. Run `./provisioning/healthcheck.sh` on the unit any time for a
 status snapshot.
 
-**You need:** a Raspberry Pi 5 (8GB), the 800×480 touchscreen wired up, Spotify Premium,
+**You need:** a Raspberry Pi 5 (8GB), the 1024×600 touchscreen wired up, Spotify Premium,
 a speaker/output, and (for the UI build) either Node on a dev box or on the Pi.
+
+## What `install.sh` puts on the Pi
+
+You do **not** need to pre-create any user or directory — the installer does it. After it
+runs:
+
+| Item | Location / value | Notes |
+|------|------------------|-------|
+| Install dir | `/opt/homecontrol` | the whole repo is copied here, owned by `homecontrol` |
+| Service user | `homecontrol` | **auto-created** if missing: system account, no-login shell, added to `audio`, `video`, `render` groups |
+| Config + secrets | `/etc/homecontrol/unit.env` | per-unit identity and Spotify creds — **not** in the repo |
+| Python venv | `/opt/homecontrol/core/.venv` | created and owned by `homecontrol` |
+| Cache (Phase 2) | `/var/lib/homecontrol/librespot-cache` | created by `phase2-spotify.sh` |
+| systemd services | `homecontrol-core`, `homecontrol-kiosk`, `librespot` | all run as `User=homecontrol`, `Restart=always` |
+
+Because the repo lives at `/opt/homecontrol`, off-device builds are copied there (e.g.
+`sudo cp -r ui/dist /opt/homecontrol/ui/dist`), and the systemd units reference that path.
+
+> **Kiosk + display session caveat.** `homecontrol-kiosk.service` runs Chromium as the
+> `homecontrol` user, but the Pi's graphical session (labwc/Wayland) is owned by the
+> desktop autologin user chosen in Raspberry Pi Imager — a different user. If Chromium
+> can't reach the compositor at Gate 1, either run the kiosk as the desktop user or give
+> `homecontrol` access to the Wayland socket. See Troubleshooting.
 
 ---
 
@@ -76,6 +99,14 @@ install -e /opt/homecontrol/core`.
 `start-kiosk.sh` already auto-detects `chromium` vs `chromium-browser` and only passes
 the Wayland flag under Wayland. Check `journalctl -u homecontrol-kiosk`. If it launched
 before the API, it self-recovers (the script waits on `/api/health`).
+
+**Kiosk: "cannot open display" / no Wayland socket** — the user mismatch. The service runs
+as `homecontrol`, but the graphical session belongs to the desktop autologin user. Pick
+one fix: (a) run the kiosk as the desktop user — change `User=` in
+`homecontrol-kiosk.service` and point `WAYLAND_DISPLAY` at that user's socket
+(`/run/user/<uid>/wayland-1`); or (b) keep `homecontrol` and grant it access to the
+desktop user's `/run/user/<uid>` Wayland socket. (a) is simplest for a single-purpose
+appliance. `loginctl` shows the active session's user and uid.
 
 **UI shows but header dot is red** — WebSocket not connecting. Confirm you're hitting the
 Core Service origin (the kiosk uses `localhost:8080`, which serves both UI and `/ws`).

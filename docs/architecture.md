@@ -13,7 +13,7 @@ A fixed-function appliance, one per room, that:
 - controls smart-home devices (lights / thermostat / cameras),
 - is configurable and controllable from iOS/Android.
 
-Constraints that shape everything: a **Raspberry Pi 5 (8GB)** per unit, an **800×480**
+Constraints that shape everything: a **Raspberry Pi 5 (8GB)** per unit, a **1024×600**
 touchscreen, **LAN-first** (no cloud dependency for core function), and Spotify
 **Premium** (a librespot requirement).
 
@@ -116,7 +116,7 @@ external dependency, and only for smart-home features.
   vosk, piper) and `aiortc`, `zeroconf` are first-class in Python; asyncio fits an
   event-driven orchestrator coordinating many I/O subsystems.
 - **Web kiosk UI (Svelte + Chromium), not native.** Fastest iteration for a fixed
-  800×480 layout; one process serves API + UI; the same API backs the mobile app.
+  1024×600 layout; one process serves API + UI; the same API backs the mobile app.
 - **librespot for Spotify.** The only practical way to be a Spotify Connect receiver on
   a Pi. Premium-only. We control it via the Web API (as the Spotify app does) rather than
   a bespoke protocol, and read fast state from its `--onevent` hooks.

@@ -1,5 +1,5 @@
 [Unit]
-Description=HomeControl Chromium kiosk (800x480 touchscreen)
+Description=HomeControl Chromium kiosk (1024x600 touchscreen)
 After=homecontrol-core.service graphical.target
 Wants=homecontrol-core.service
 

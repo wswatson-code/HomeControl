@@ -1,4 +1,4 @@
-/* Kiosk baseline: exactly 800x480, no scroll, no text selection, no cursor.
+/* Kiosk baseline: exactly 1024x600, no scroll, no text selection, no cursor.
    The unit is a fixed-size appliance — everything is laid out for this viewport. */
 :root {
   --bg: #0c0d10;
@@ -18,8 +18,8 @@
 
 html,
 body {
-  width: 800px;
-  height: 480px;
+  width: 1024px;
+  height: 600px;
   overflow: hidden;
   background: var(--bg);
   color: var(--text);
@@ -28,8 +28,8 @@ body {
 }
 
 #app {
-  width: 800px;
-  height: 480px;
+  width: 1024px;
+  height: 600px;
 }
 
 button {

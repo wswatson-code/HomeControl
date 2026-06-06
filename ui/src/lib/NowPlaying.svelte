@@ -63,15 +63,15 @@
 <style>
   .np {
     display: grid;
-    grid-template-columns: 300px 1fr;
-    gap: 32px;
-    padding: 32px;
+    grid-template-columns: 380px 1fr;
+    gap: 48px;
+    padding: 48px;
     height: 100%;
     align-items: center;
   }
   .art {
-    width: 300px;
-    height: 300px;
+    width: 380px;
+    height: 380px;
     border-radius: 16px;
     overflow: hidden;
     background: var(--surface);

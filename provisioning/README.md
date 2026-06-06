@@ -1,6 +1,6 @@
 # Provisioning a HomeControl unit
 
-Turns a Raspberry Pi 5 (800x480 touchscreen) into a HomeControl appliance.
+Turns a Raspberry Pi 5 (1024x600 touchscreen) into a HomeControl appliance.
 
 ## Phase 0 baseline (now)
 
