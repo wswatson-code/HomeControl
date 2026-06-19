@@ -5,9 +5,16 @@ Wants=homecontrol-core.service
 
 [Service]
 Type=simple
-User=homecontrol
-# Launch into the Wayland/X session the Pi boots to. labwc (Pi OS Bookworm default
-# compositor) exports WAYLAND_DISPLAY; the kiosk script waits for the Core Service.
+# Must run as the DESKTOP autologin user (chosen in Pi Imager), NOT homecontrol: Chromium
+# has to reach that user's Wayland compositor (labwc), and the homecontrol nologin system
+# account has no graphical session and cannot touch another user's socket. install.sh fills
+# @DESKTOP_USER@/@DESKTOP_UID@ from the uid-1000 account; verify against `loginctl`.
+User=@DESKTOP_USER@
+Environment=XDG_RUNTIME_DIR=/run/user/@DESKTOP_UID@
+# labwc (Pi OS Bookworm default compositor) exports WAYLAND_DISPLAY=wayland-1. If the kiosk
+# bails to X11 ("Missing X server or $DISPLAY"), the socket name is wrong — `ls /run/user/
+# @DESKTOP_UID@/` shows the real one (often wayland-0). For an X11 session, swap this for
+# DISPLAY=:0 and XAUTHORITY=/home/@DESKTOP_USER@/.Xauthority instead.
 Environment=WAYLAND_DISPLAY=wayland-1
 ExecStart=/opt/homecontrol/provisioning/kiosk/start-kiosk.sh
 Restart=always

@@ -6,11 +6,11 @@ which needs a user refresh token. Run this once per Spotify account (not per uni
 
     python pair.py --client-id <id> --client-secret <secret>
 
-It opens the consent page, catches the redirect on http://localhost:8888/callback,
+It opens the consent page, catches the redirect on http://localhost:8000/callback,
 exchanges the code, and prints the refresh token to paste into the unit's env file.
 
 Stdlib only — no install required. Your Spotify app must list
-http://localhost:8888/callback as a redirect URI.
+http://localhost:8000/callback as a redirect URI.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ import urllib.parse
 import urllib.request
 import webbrowser
 
-REDIRECT_URI = "http://localhost:8888/callback"
+REDIRECT_URI = "http://127.0.0.1:8000/callback"
 SCOPES = "user-read-playback-state user-modify-playback-state user-read-currently-playing"
 _AUTH = "https://accounts.spotify.com/authorize"
 _TOKEN = "https://accounts.spotify.com/api/token"  # noqa: S105 — public OAuth endpoint
@@ -76,7 +76,7 @@ def main() -> None:
     print("Opening browser for Spotify consent...\nIf it doesn't open, visit:\n", auth_url)
     webbrowser.open(auth_url)
 
-    server = http.server.HTTPServer(("localhost", 8888), _Handler)
+    server = http.server.HTTPServer(("localhost", 8000), _Handler)
     server.handle_request()  # blocks until the single callback arrives
 
     if not _code:

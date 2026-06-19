@@ -61,8 +61,19 @@ fi
 
 echo "==> systemd units"
 chmod +x "${INSTALL_DIR}/provisioning/kiosk/start-kiosk.sh"
+# The kiosk must run as the desktop autologin user (it needs that user's Wayland/PipeWire
+# session), not the homecontrol system account. Detect that user — uid 1000 on a standard
+# Pi OS image — or override by exporting DESKTOP_USER. render_unit fills the placeholders.
+DESKTOP_USER="${DESKTOP_USER:-$(getent passwd 1000 | cut -d: -f1)}"
+[[ -n "${DESKTOP_USER}" ]] || { echo "no uid-1000 user found; export DESKTOP_USER and re-run"; exit 1; }
+DESKTOP_UID="$(id -u "${DESKTOP_USER}")"
+echo "    desktop session user: ${DESKTOP_USER} (uid ${DESKTOP_UID})"
+render_unit() {  # render_unit <template> <dest> — fill the @DESKTOP_USER@/@DESKTOP_UID@ placeholders
+  sed -e "s/@DESKTOP_USER@/${DESKTOP_USER}/g" -e "s/@DESKTOP_UID@/${DESKTOP_UID}/g" "$1" > "$2"
+  chmod 644 "$2"
+}
 install -m 644 "${INSTALL_DIR}/provisioning/systemd/homecontrol-core.service" /etc/systemd/system/
-install -m 644 "${INSTALL_DIR}/provisioning/systemd/homecontrol-kiosk.service" /etc/systemd/system/
+render_unit "${INSTALL_DIR}/provisioning/systemd/homecontrol-kiosk.service" /etc/systemd/system/homecontrol-kiosk.service
 systemctl daemon-reload
 systemctl enable --now homecontrol-core.service
 systemctl enable homecontrol-kiosk.service

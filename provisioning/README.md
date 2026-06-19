@@ -48,3 +48,8 @@ reviewable. Home Assistant itself runs on a **separate host**, not on a unit.
   `ui/` on a dev machine or CI and ship `ui/dist/`.
 - `start-kiosk.sh` waits for `/api/health` before launching Chromium, so a slow first
   boot never shows an error page.
+- `homecontrol-kiosk` and `librespot` run as the **desktop autologin user** (they need that
+  user's Wayland/PipeWire session); the installer auto-detects it (uid 1000, or `DESKTOP_USER`
+  override). Only the Core Service runs as the `homecontrol` system user.
+- librespot must be built with the `pulseaudio-backend` feature (apt's package is fine; a
+  bare `cargo install librespot` is not — it ships rodio only).

@@ -20,16 +20,18 @@ runs:
 | Config + secrets | `/etc/homecontrol/unit.env` | per-unit identity and Spotify creds — **not** in the repo |
 | Python venv | `/opt/homecontrol/core/.venv` | created and owned by `homecontrol` |
 | Cache (Phase 2) | `/var/lib/homecontrol/librespot-cache` | created by `phase2-spotify.sh` |
-| systemd services | `homecontrol-core`, `homecontrol-kiosk`, `librespot` | all run as `User=homecontrol`, `Restart=always` |
+| systemd services | `homecontrol-core`, `homecontrol-kiosk`, `librespot` | core runs as `homecontrol`; **kiosk + librespot run as the desktop autologin user** (they need its Wayland/PipeWire session). All `Restart=always` |
 
 Because the repo lives at `/opt/homecontrol`, off-device builds are copied there (e.g.
 `sudo cp -r ui/dist /opt/homecontrol/ui/dist`), and the systemd units reference that path.
 
-> **Kiosk + display session caveat.** `homecontrol-kiosk.service` runs Chromium as the
-> `homecontrol` user, but the Pi's graphical session (labwc/Wayland) is owned by the
-> desktop autologin user chosen in Raspberry Pi Imager — a different user. If Chromium
-> can't reach the compositor at Gate 1, either run the kiosk as the desktop user or give
-> `homecontrol` access to the Wayland socket. See Troubleshooting.
+> **Session-owned services (kiosk + librespot).** Chromium needs the desktop user's Wayland
+> compositor, and librespot's pulseaudio backend needs that user's PipeWire session — both are
+> per-user session services. The `homecontrol` nologin account has neither, so these two units
+> run as the **desktop autologin user** (chosen in Raspberry Pi Imager). `install.sh` and
+> `phase2-spotify.sh` auto-detect that user (uid 1000) and fill it into the units; override by
+> exporting `DESKTOP_USER` before running them. See Troubleshooting if a unit can't reach the
+> session.
 
 ---
 
@@ -100,21 +102,37 @@ install -e /opt/homecontrol/core`.
 the Wayland flag under Wayland. Check `journalctl -u homecontrol-kiosk`. If it launched
 before the API, it self-recovers (the script waits on `/api/health`).
 
-**Kiosk: "cannot open display" / no Wayland socket** — the user mismatch. The service runs
-as `homecontrol`, but the graphical session belongs to the desktop autologin user. Pick
-one fix: (a) run the kiosk as the desktop user — change `User=` in
-`homecontrol-kiosk.service` and point `WAYLAND_DISPLAY` at that user's socket
-(`/run/user/<uid>/wayland-1`); or (b) keep `homecontrol` and grant it access to the
-desktop user's `/run/user/<uid>` Wayland socket. (a) is simplest for a single-purpose
-appliance. `loginctl` shows the active session's user and uid.
+**Kiosk: "cannot open display" / "Missing X server or $DISPLAY" / no Wayland socket** —
+user/session mismatch. The kiosk must run as the desktop autologin user; `install.sh`
+auto-fills that (uid 1000). If it's still wrong, confirm with `loginctl` and check the socket
+name: `ls /run/user/<uid>/` shows the real `wayland-*` (often `wayland-0`, **not** `wayland-1`)
+— set `Environment=WAYLAND_DISPLAY=` to match. If the session is X11 rather than Wayland
+(`echo $XDG_SESSION_TYPE`), drop the Wayland env and set `Environment=DISPLAY=:0` plus
+`XAUTHORITY=/home/<user>/.Xauthority` instead.
 
 **UI shows but header dot is red** — WebSocket not connecting. Confirm you're hitting the
 Core Service origin (the kiosk uses `localhost:8080`, which serves both UI and `/ws`).
 
-**No sound in Gate 2** — librespot's audio backend. Default is `pulseaudio` (PipeWire's
-shim). Check `HOMECONTROL_LIBRESPOT_BACKEND=pulseaudio` and that `pipewire-pulse` is
-running. List sinks: `sudo -u homecontrol pactl list short sinks`. Point
-`HOMECONTROL_LIBRESPOT_DEVICE` at the right sink if `default` is wrong.
+**Core Service crashes right after switching to Spotify** — `No module named 'httpx'`. The
+librespot provider drives the Spotify Web API via `httpx`, an optional extra not in the base
+install. `phase2-spotify.sh` installs it (`pip install -e ".[spotify]"`); if you skipped the
+script, run that in `/opt/homecontrol/core` as `homecontrol` and restart the Core Service.
+
+**librespot dies with `Invalid --backend "pulseaudio"`** — the binary was built without the
+pulseaudio backend (librespot 0.8.x defaults to rodio only). Rebuild with the feature:
+`cargo install librespot --locked --features pulseaudio-backend`, then `sudo cp
+~/.cargo/bin/librespot /usr/bin/librespot` and restart. (apt's librespot, when available,
+already includes it.)
+
+**librespot dies with `PulseAudioSink Connection refused`** — it's running as a user with no
+PipeWire session (e.g. `homecontrol`). It must run as the **desktop autologin user**, whose
+session owns `/run/user/<uid>/pulse/native`. The provisioning scripts set this; if you edited
+the unit by hand, set `User=` to that user and `Environment=XDG_RUNTIME_DIR=/run/user/<uid>`,
+and `chown` the cache dir (`/var/lib/homecontrol/librespot-cache`) to them.
+
+**No sound though librespot is connected** — wrong sink. List them as the desktop user:
+`sudo -u <desktop-user> XDG_RUNTIME_DIR=/run/user/<uid> pactl list short sinks`, then point
+`HOMECONTROL_LIBRESPOT_DEVICE` at the right one (default is `default`).
 
 **librespot device missing from the Spotify app** — librespot uses zeroconf/mDNS. Confirm
 `avahi-daemon` is active and the phone is on the same LAN/VLAN (mDNS doesn't cross

@@ -1,11 +1,21 @@
 [Unit]
 Description=librespot — Spotify Connect receiver for HomeControl
-After=network-online.target avahi-daemon.service homecontrol-core.service
+# graphical.target: librespot runs as the desktop user (see below) and the pulseaudio
+# backend needs that user's session (/run/user/<uid>) to exist — which it does once the
+# autologin desktop is up. Restart=always covers any remaining boot-time race.
+After=network-online.target avahi-daemon.service homecontrol-core.service graphical.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-User=homecontrol
+# Runs as the DESKTOP autologin user, NOT homecontrol: the pulseaudio backend connects to
+# PipeWire's pulse shim, a per-user session service living under that user's session at
+# /run/user/<uid>. The homecontrol nologin account has no audio session, so there you get
+# a PulseAudioSink "Connection refused". install.sh / phase2-spotify.sh fill the
+# @DESKTOP_USER@/@DESKTOP_UID@ placeholders from the uid-1000 account. (Phase 3 switches to
+# the pipe backend feeding Snapcast — no PulseAudio — and this can return to homecontrol.)
+User=@DESKTOP_USER@
+Environment=XDG_RUNTIME_DIR=/run/user/@DESKTOP_UID@
 EnvironmentFile=/etc/homecontrol/unit.env
 # Zeroconf mode: librespot advertises on the LAN and the user's Spotify app connects —
 # no stored password. --onevent fires our hook on every player event (the Core Service
