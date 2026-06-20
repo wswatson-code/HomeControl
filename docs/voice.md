@@ -68,12 +68,22 @@ sit bottom-right and pulse/ring when they fire (tap ✕ to dismiss).
 | `HOMECONTROL_VOICE_WAKE_MODEL` | `hey_jarvis` | one or more (comma-separated) bundled names and/or `.onnx` paths; wakes on any |
 | `HOMECONTROL_VOICE_WAKE_THRESHOLD` | `0.5` | raise if it triggers on noise, lower if it misses |
 | `HOMECONTROL_VOICE_LISTEN_CHIME` | `true` | play a short chime when the wake word is heard; `false` to stay silent |
+| `HOMECONTROL_VOICE_DUCK` | `true` | duck (lower) the music while the voice pipeline is active; `false` to disable |
+| `HOMECONTROL_VOICE_DUCK_LISTEN` | `0.25` | music volume fraction while listening (0.25 = 75% reduction) |
+| `HOMECONTROL_VOICE_DUCK_SPEAK` | `0.50` | music volume fraction while speaking the reply (50% reduction) |
 | `HOMECONTROL_VOICE_COMMAND_SECONDS` | `5` | how long it records after the wake word |
 | `HOMECONTROL_VOICE_INPUT_DEVICE` | (empty) | PipeWire source; empty = system default (the HAT) |
 | `HOMECONTROL_VOICE_OUTPUT_DEVICE` | (empty) | PipeWire sink for TTS; empty = default |
 | `HOMECONTROL_VOICE_WHISPER_MODEL` | `…/ggml-tiny.en.bin` | swap for `base.en` for more accuracy, more CPU |
 
 After editing: `sudo systemctl restart homecontrol-voice`.
+
+**Ducking.** While the pipeline is active the music is lowered so the unit hears you and the
+reply is clear: on wake it drops to `DUCK_LISTEN` (default 25%) through the chime + listening
++ thinking, eases to `DUCK_SPEAK` (default 50%) for the spoken reply, then restores. Only
+librespot's own stream is attenuated (via `pactl` on its sink-input), so the chime/TTS play
+at full volume and your overall device volume is untouched. It's best-effort — if nothing is
+playing or `pactl` is unavailable it's a no-op.
 
 **Multiple wake words.** Set a comma-separated list and the unit triggers on any of them:
 

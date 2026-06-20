@@ -68,6 +68,13 @@ class VoiceConfig:
     # (audible "I'm listening" cue). Set false to stay silent.
     listen_chime: bool = _get_bool("LISTEN_CHIME", True)
 
+    # Duck (lower) librespot's music while the voice pipeline is active, so the mic hears
+    # the command and the spoken reply is clear. Levels are the music volume FRACTION
+    # (0..1): 0.25 = 75% reduction. The user's overall device volume is untouched.
+    duck_enabled: bool = _get_bool("DUCK", True)
+    duck_listen: float = _get_float("DUCK_LISTEN", 0.25)  # while listening (deeper duck)
+    duck_speak: float = _get_float("DUCK_SPEAK", 0.50)  # while speaking the reply
+
     # How long to record after the wake word before transcribing (seconds).
     command_seconds: float = _get_float("COMMAND_SECONDS", 5.0)
 

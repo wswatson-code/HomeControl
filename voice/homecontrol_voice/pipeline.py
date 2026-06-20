@@ -16,6 +16,7 @@ import httpx
 from .actions import Actions
 from .audio import play_chime, record
 from .config import VoiceConfig
+from .ducking import duck, restore
 from .intent import parse
 from .stt import Transcriber
 from .tts import Speaker
@@ -40,10 +41,19 @@ class Pipeline:
                 try:
                     await actions.report_state("idle")
                     await asyncio.to_thread(self._wake.wait_for_wake)
-                    await self._handle_utterance(actions)
+                    # Duck the music on wake (covers the chime + listening + thinking).
+                    if cfg.duck_enabled:
+                        await asyncio.to_thread(duck, cfg.duck_listen)
+                    try:
+                        await self._handle_utterance(actions)
+                    finally:
+                        if cfg.duck_enabled:
+                            await asyncio.to_thread(restore)  # always un-duck after a cycle
                 except Exception:  # noqa: BLE001 — a bad utterance or mic blip must not kill the loop
                     # Includes AudioError from a dead mic; sleep so we don't spin if it stays dead.
                     log.exception("voice cycle failed")
+                    if cfg.duck_enabled:
+                        await asyncio.to_thread(restore)  # belt-and-suspenders: never leave music ducked
                     await asyncio.sleep(1)
 
     async def _handle_utterance(self, actions: Actions) -> None:
@@ -63,4 +73,7 @@ class Pipeline:
 
         reply = await actions.dispatch(intent)
         await actions.report_state("speaking", transcript=text, reply=reply)
+        # Ease the duck for the spoken reply (music a bit louder under TTS than under listen).
+        if cfg.duck_enabled:
+            await asyncio.to_thread(duck, cfg.duck_speak)
         await asyncio.to_thread(self._tts.say, reply)
