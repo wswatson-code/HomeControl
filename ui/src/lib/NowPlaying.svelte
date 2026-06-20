@@ -1,5 +1,5 @@
 <script>
-  import { player, commands, showBrowse } from "./store.js";
+  import { player, commands } from "./store.js";
   import { fmtTime } from "./format.js";
 
   $: track = $player.track;
@@ -17,15 +17,12 @@
 </script>
 
 <div class="np">
-  <div class="left">
-    <button class="browse" on:click={() => showBrowse.set(true)}>Browse</button>
-    <div class="art" class:placeholder={!track?.artwork_url}>
-      {#if track?.artwork_url}
-        <img src={track.artwork_url} alt="" />
-      {:else}
-        <span class="note">♪</span>
-      {/if}
-    </div>
+  <div class="art" class:placeholder={!track?.artwork_url}>
+    {#if track?.artwork_url}
+      <img src={track.artwork_url} alt="" />
+    {:else}
+      <span class="note">♪</span>
+    {/if}
   </div>
 
   <div class="meta">
@@ -71,25 +68,6 @@
     padding: 48px;
     height: 100%;
     align-items: center;
-  }
-  .left {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
-  .browse {
-    background: var(--accent);
-    color: #04210f;
-    border: none;
-    border-radius: 999px;
-    padding: 14px 36px;
-    font-size: 22px;
-    font-weight: 700;
-    cursor: pointer;
-  }
-  .browse:active {
-    transform: scale(0.96);
   }
   .art {
     width: 380px;

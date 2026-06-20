@@ -26,6 +26,7 @@
   <header>
     <span class="room">{$unit ? $unit.room : "HomeControl"}</span>
     <span class="header-right">
+      <button class="browse-btn" on:click={() => showBrowse.set(true)}>Browse</button>
       <span class="status" class:online={$connected}>
         {$connected ? "●" : "○"}
       </span>
@@ -56,24 +57,36 @@
     flex-direction: column;
   }
   header {
-    height: 44px;
-    flex: 0 0 44px;
+    height: 59px;
+    flex: 0 0 59px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 24px;
+    padding: 0 32px;
     color: var(--muted);
-    font-size: 16px;
+    font-size: 21px;
     letter-spacing: 0.5px;
   }
   .header-right {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 21px;
+  }
+  .browse-btn {
+    background: var(--surface);
+    border: none;
+    color: var(--text);
+    font-size: 20px;
+    padding: 8px 19px;
+    border-radius: 11px;
+    cursor: pointer;
+  }
+  .browse-btn:active {
+    transform: scale(0.96);
   }
   .status {
     color: #d9534f;
-    font-size: 14px;
+    font-size: 19px;
   }
   .status.online {
     color: var(--accent);
@@ -82,10 +95,10 @@
     background: none;
     border: none;
     color: var(--muted);
-    font-size: 18px;
+    font-size: 24px;
     line-height: 1;
-    padding: 6px 8px;
-    border-radius: 6px;
+    padding: 8px 11px;
+    border-radius: 8px;
     cursor: pointer;
   }
   .exit:active {
