@@ -30,6 +30,21 @@ room as a Connect device; the Core Service drives it via the Web API and reflect
 state from `--onevent` hooks. Phase 2 plays audio directly (pulseaudio backend); the
 switch to the Snapcast FIFO happens in Phase 3.
 
+## Updating a provisioned unit
+
+`install.sh` copies the repo to `/opt/homecontrol` once; after that the checkout and the
+runtime copy drift on every `git pull`. To re-sync code + deps + UI and restart services in
+one step:
+
+```bash
+git pull
+sudo ./provisioning/deploy.sh
+```
+
+It preserves on-device state not in the repo (venvs, `node_modules`, the built
+whisper.cpp/Piper/models, `unit.env`). It does **not** re-render systemd unit files — if you
+changed a `.service` template, re-run `install.sh` or the relevant `phaseN-*.sh`.
+
 ## Phase 5 — Voice (wake word + STT + TTS)
 
 ```bash
