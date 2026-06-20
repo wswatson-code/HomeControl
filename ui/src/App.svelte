@@ -1,6 +1,6 @@
 <script>
   import { onMount } from "svelte";
-  import { connect, connected, unit, commands } from "./lib/store.js";
+  import { connect, connected, unit, player, commands } from "./lib/store.js";
   import { initAlarmAudio } from "./lib/alarm.js";
   import NowPlaying from "./lib/NowPlaying.svelte";
   import Timers from "./lib/Timers.svelte";
@@ -8,6 +8,15 @@
   import Browse from "./lib/Browse.svelte";
 
   let showBrowse = false;
+
+  // On first snapshot ($unit becomes set), if nothing is loaded, open Browse so a freshly
+  // booted unit lands on something useful instead of an empty now-playing. One-shot — it
+  // won't reopen every time playback later stops.
+  let didStartupCheck = false;
+  $: if (!didStartupCheck && $unit) {
+    didStartupCheck = true;
+    if (!$player.track) showBrowse = true;
+  }
 
   onMount(() => {
     connect();
