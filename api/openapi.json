@@ -297,6 +297,357 @@
           }
         }
       }
+    },
+    "/api/search": {
+      "get": {
+        "tags": [
+          "control"
+        ],
+        "summary": "Search",
+        "operationId": "search_api_search_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Q"
+            }
+          },
+          {
+            "name": "types",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "track,album,artist,playlist",
+              "title": "Types"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Search Api Search Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/browse/playlists": {
+      "get": {
+        "tags": [
+          "control"
+        ],
+        "summary": "Browse Playlists",
+        "operationId": "browse_playlists_api_browse_playlists_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Browse Playlists Api Browse Playlists Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/browse/albums": {
+      "get": {
+        "tags": [
+          "control"
+        ],
+        "summary": "Browse Albums",
+        "operationId": "browse_albums_api_browse_albums_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Browse Albums Api Browse Albums Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/browse/playlist/{playlist_id}": {
+      "get": {
+        "tags": [
+          "control"
+        ],
+        "summary": "Browse Playlist",
+        "operationId": "browse_playlist_api_browse_playlist__playlist_id__get",
+        "parameters": [
+          {
+            "name": "playlist_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Playlist Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Browse Playlist Api Browse Playlist  Playlist Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/browse/album/{album_id}": {
+      "get": {
+        "tags": [
+          "control"
+        ],
+        "summary": "Browse Album",
+        "operationId": "browse_album_api_browse_album__album_id__get",
+        "parameters": [
+          {
+            "name": "album_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Album Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Browse Album Api Browse Album  Album Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/browse/artist/{artist_id}": {
+      "get": {
+        "tags": [
+          "control"
+        ],
+        "summary": "Browse Artist",
+        "operationId": "browse_artist_api_browse_artist__artist_id__get",
+        "parameters": [
+          {
+            "name": "artist_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Artist Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Browse Artist Api Browse Artist  Artist Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices": {
+      "get": {
+        "tags": [
+          "control"
+        ],
+        "summary": "List Devices",
+        "operationId": "list_devices_api_devices_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response List Devices Api Devices Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/play": {
+      "post": {
+        "tags": [
+          "control"
+        ],
+        "summary": "Play Content",
+        "operationId": "play_content_api_play_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlayBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Play Content Api Play Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transfer": {
+      "post": {
+        "tags": [
+          "control"
+        ],
+        "summary": "Transfer Playback",
+        "operationId": "transfer_playback_api_transfer_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Transfer Playback Api Transfer Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -341,6 +692,61 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "PlayBody": {
+        "properties": {
+          "device_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Id"
+          },
+          "context_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Uri"
+          },
+          "uris": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uris"
+          },
+          "offset": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "title": "PlayBody",
+        "description": "Start playback. Either a context (playlist/album/artist uri) or explicit track uris;\ndevice_id picks the target (omitted = the user's current/active device)."
       },
       "PlaybackState": {
         "type": "string",
@@ -533,6 +939,24 @@
           "artist"
         ],
         "title": "Track"
+      },
+      "TransferBody": {
+        "properties": {
+          "device_id": {
+            "type": "string",
+            "title": "Device Id"
+          },
+          "play": {
+            "type": "boolean",
+            "title": "Play",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "device_id"
+        ],
+        "title": "TransferBody"
       },
       "UnitInfo": {
         "properties": {

@@ -19,7 +19,7 @@ import time
 
 import httpx
 
-from ..models import Track
+from ..models import BrowseItem, Device, Track
 
 _API = "https://api.spotify.com/v1"
 _TOKEN_URL = "https://accounts.spotify.com/api/token"  # noqa: S105 — public OAuth endpoint
@@ -140,6 +140,147 @@ class SpotifyWebClient:
     async def set_volume(self, volume_percent: int) -> None:
         await self._request("PUT", "/me/player/volume", params={"volume_percent": volume_percent, **self._device_q()})
 
+    # --- browse / search (catalog plane) --------------------------------------
+
+    async def _get_json(self, path: str, **params) -> dict:
+        resp = await self._request("GET", path, params=params or None)
+        if resp.status_code != 200:
+            raise SpotifyError(f"GET {path} -> {resp.status_code} {resp.text}")
+        return resp.json()
+
+    async def search(self, query: str, types: str = "track,album,artist,playlist", limit: int = 20) -> dict:
+        data = await self._get_json("/search", q=query, type=types, limit=limit)
+        out: dict[str, list[BrowseItem]] = {}
+        if "tracks" in data:
+            out["tracks"] = [_track_item(t) for t in data["tracks"]["items"] if t]
+        if "albums" in data:
+            out["albums"] = [_album_item(a) for a in data["albums"]["items"] if a]
+        if "artists" in data:
+            out["artists"] = [_artist_item(a) for a in data["artists"]["items"] if a]
+        if "playlists" in data:
+            out["playlists"] = [_playlist_item(p) for p in data["playlists"]["items"] if p]
+        return out
+
+    async def my_playlists(self, limit: int = 50) -> list[BrowseItem]:
+        data = await self._get_json("/me/playlists", limit=limit)
+        return [_playlist_item(p) for p in data.get("items", []) if p]
+
+    async def my_albums(self, limit: int = 50) -> list[BrowseItem]:
+        data = await self._get_json("/me/albums", limit=limit)
+        return [_album_item(it["album"]) for it in data.get("items", []) if it.get("album")]
+
+    async def playlist_tracks(self, playlist_id: str, limit: int = 100) -> list[Track]:
+        data = await self._get_json(f"/playlists/{playlist_id}/tracks", limit=limit)
+        return [_to_track(it["track"]) for it in data.get("items", []) if it.get("track")]
+
+    async def album_tracks(self, album_id: str, limit: int = 50) -> list[Track]:
+        # Album-track items carry no album image; the UI shows the album art at the header.
+        data = await self._get_json(f"/albums/{album_id}/tracks", limit=limit)
+        return [_to_track(t) for t in data.get("items", []) if t]
+
+    async def artist(self, artist_id: str) -> dict:
+        top = await self._get_json(f"/artists/{artist_id}/top-tracks", market="from_token")
+        albums = await self._get_json(f"/artists/{artist_id}/albums", include_groups="album,single", limit=50)
+        return {
+            "top_tracks": [_to_track(t) for t in top.get("tracks", []) if t],
+            "albums": [_album_item(a) for a in albums.get("items", []) if a],
+        }
+
+    async def list_devices(self) -> list[Device]:
+        data = await self._get_json("/me/player/devices")
+        return [
+            Device(
+                id=d["id"],
+                name=d.get("name", ""),
+                type=d.get("type", ""),
+                is_active=bool(d.get("is_active")),
+                volume=d.get("volume_percent"),
+            )
+            for d in data.get("devices", [])
+            if d.get("id")
+        ]
+
+    async def play_context(
+        self,
+        *,
+        device_id: str | None = None,
+        context_uri: str | None = None,
+        uris: list[str] | None = None,
+        offset: int | None = None,
+    ) -> None:
+        body: dict = {}
+        if context_uri:
+            body["context_uri"] = context_uri
+        if uris:
+            body["uris"] = uris
+        if offset is not None:
+            body["offset"] = {"position": offset}
+        params = {"device_id": device_id} if device_id else {}
+        resp = await self._request("PUT", "/me/player/play", params=params, json=body)
+        if resp.status_code not in (200, 202, 204):
+            raise SpotifyError(f"play -> {resp.status_code} {resp.text}")
+
+    async def transfer(self, device_id: str, play: bool = True) -> None:
+        resp = await self._request("PUT", "/me/player", json={"device_ids": [device_id], "play": play})
+        if resp.status_code not in (200, 202, 204):
+            raise SpotifyError(f"transfer -> {resp.status_code} {resp.text}")
+
 
 def _first_image(images: list[dict]) -> str | None:
     return images[0]["url"] if images else None
+
+
+def _to_track(t: dict) -> Track:
+    album = t.get("album", {})
+    return Track(
+        id=t.get("id", ""),
+        title=t.get("name", ""),
+        artist=", ".join(a["name"] for a in t.get("artists", [])),
+        album=album.get("name", ""),
+        artwork_url=_first_image(album.get("images", [])),
+        duration_ms=t.get("duration_ms", 0),
+    )
+
+
+def _track_item(t: dict) -> BrowseItem:
+    return BrowseItem(
+        id=t.get("id", ""),
+        uri=t.get("uri", ""),
+        type="track",
+        name=t.get("name", ""),
+        subtitle=", ".join(a["name"] for a in t.get("artists", [])),
+        image=_first_image(t.get("album", {}).get("images", [])),
+    )
+
+
+def _album_item(a: dict) -> BrowseItem:
+    return BrowseItem(
+        id=a.get("id", ""),
+        uri=a.get("uri", ""),
+        type="album",
+        name=a.get("name", ""),
+        subtitle=", ".join(x["name"] for x in a.get("artists", [])),
+        image=_first_image(a.get("images", [])),
+    )
+
+
+def _artist_item(a: dict) -> BrowseItem:
+    return BrowseItem(
+        id=a.get("id", ""),
+        uri=a.get("uri", ""),
+        type="artist",
+        name=a.get("name", ""),
+        subtitle="Artist",
+        image=_first_image(a.get("images", [])),
+    )
+
+
+def _playlist_item(p: dict) -> BrowseItem:
+    return BrowseItem(
+        id=p.get("id", ""),
+        uri=p.get("uri", ""),
+        type="playlist",
+        name=p.get("name", ""),
+        subtitle=(p.get("owner", {}) or {}).get("display_name", ""),
+        image=_first_image(p.get("images", [])),
+    )

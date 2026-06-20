@@ -12,6 +12,7 @@ from .config import Settings
 from .events import EventBus
 from .models import Event, EventType, PlayerState, Snapshot, TimerInfo, UnitInfo, VoiceState
 from .spotify import SpotifyProvider, create_provider
+from .spotify.web import SpotifyWebClient
 from .timers import TimerManager
 
 
@@ -27,6 +28,17 @@ class StateManager:
         # The voice pipeline (a separate service) reports its phase here for the kiosk
         # overlay; idle until it connects.
         self.voice = VoiceState()
+        # Catalog (browse/search/devices) is available whenever Spotify Web API creds are
+        # configured — independent of the playback provider, so browsing works even while the
+        # local provider is "mock". None (and endpoints 503) when creds are absent.
+        self.catalog: SpotifyWebClient | None = None
+        if settings.spotify_client_id and settings.spotify_client_secret and settings.spotify_refresh_token:
+            self.catalog = SpotifyWebClient(
+                client_id=settings.spotify_client_id,
+                client_secret=settings.spotify_client_secret,
+                refresh_token=settings.spotify_refresh_token,
+                device_name=settings.resolved_device_name(),
+            )
 
     async def start(self) -> None:
         await self.spotify.start()
@@ -34,6 +46,8 @@ class StateManager:
     async def stop(self) -> None:
         await self.spotify.stop()
         await self.timers.stop()
+        if self.catalog is not None:
+            await self.catalog.aclose()
 
     def snapshot(self) -> Snapshot:
         return Snapshot(

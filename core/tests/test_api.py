@@ -132,3 +132,90 @@ def test_voice_state_internal_updates_snapshot(client):
 def test_voice_state_absent_from_public_contract(client):
     paths = client.get("/openapi.json").json()["paths"]
     assert "/internal/voice/state" not in paths
+
+
+# ------------------------------------------------------------------------------ browse
+
+
+from homecontrol.models import BrowseItem, Device, Track  # noqa: E402
+
+
+class _FakeCatalog:
+    def __init__(self):
+        self.played = None
+        self.transferred = None
+
+    async def my_playlists(self, limit=50):
+        return [BrowseItem(id="p1", uri="spotify:playlist:p1", type="playlist", name="Chill")]
+
+    async def my_albums(self, limit=50):
+        return [BrowseItem(id="a1", uri="spotify:album:a1", type="album", name="OK Computer")]
+
+    async def playlist_tracks(self, playlist_id, limit=100):
+        return [Track(id="t1", title="Song", artist="Band")]
+
+    async def album_tracks(self, album_id, limit=50):
+        return [Track(id="t2", title="Track", artist="Band")]
+
+    async def artist(self, artist_id):
+        return {"top_tracks": [Track(id="t3", title="Hit", artist="Band")], "albums": []}
+
+    async def search(self, query, types="track,album,artist,playlist", limit=20):
+        return {"tracks": [BrowseItem(id="t4", uri="spotify:track:t4", type="track", name="Found")]}
+
+    async def list_devices(self):
+        return [Device(id="d1", name="Kitchen", is_active=True)]
+
+    async def play_context(self, *, device_id=None, context_uri=None, uris=None, offset=None):
+        self.played = {"device_id": device_id, "context_uri": context_uri, "uris": uris, "offset": offset}
+
+    async def transfer(self, device_id, play=True):
+        self.transferred = {"device_id": device_id, "play": play}
+
+    async def aclose(self):  # called by StateManager.stop() on teardown
+        pass
+
+
+@pytest.fixture
+def browse_client(client):
+    """The mock-provider client has no catalog; inject a fake so browse endpoints work."""
+    fake = _FakeCatalog()
+    client.app.state.manager.catalog = fake
+    return client, fake
+
+
+def test_browse_requires_catalog(client):
+    # No Spotify creds under the mock provider -> catalog is None -> 503.
+    assert client.app.state.manager.catalog is None
+    assert client.get("/api/browse/playlists").status_code == 503
+
+
+def test_browse_playlists(browse_client):
+    client, _ = browse_client
+    items = client.get("/api/browse/playlists").json()["items"]
+    assert items[0]["name"] == "Chill" and items[0]["type"] == "playlist"
+
+
+def test_search(browse_client):
+    client, _ = browse_client
+    out = client.get("/api/search", params={"q": "found"}).json()
+    assert out["tracks"][0]["name"] == "Found"
+
+
+def test_list_devices(browse_client):
+    client, _ = browse_client
+    devices = client.get("/api/devices").json()["devices"]
+    assert devices[0]["name"] == "Kitchen" and devices[0]["is_active"] is True
+
+
+def test_play_context_passes_through(browse_client):
+    client, fake = browse_client
+    r = client.post("/api/play", json={"context_uri": "spotify:playlist:p1", "device_id": "d1"})
+    assert r.json() == {"ok": True}
+    assert fake.played == {"device_id": "d1", "context_uri": "spotify:playlist:p1", "uris": None, "offset": None}
+
+
+def test_transfer_passes_through(browse_client):
+    client, fake = browse_client
+    client.post("/api/transfer", json={"device_id": "d1", "play": True})
+    assert fake.transferred == {"device_id": "d1", "play": True}

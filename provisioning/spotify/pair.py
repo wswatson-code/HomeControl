@@ -24,7 +24,19 @@ import urllib.request
 import webbrowser
 
 REDIRECT_URI = "http://127.0.0.1:8000/callback"
-SCOPES = "user-read-playback-state user-modify-playback-state user-read-currently-playing"
+SCOPES = " ".join(
+    [
+        # playback control + status (Phase 2)
+        "user-read-playback-state",
+        "user-modify-playback-state",
+        "user-read-currently-playing",
+        # browsing the user's library from the kiosk (Phase: browse). Catalog search needs
+        # no scope; these cover the user's own playlists + saved albums.
+        "playlist-read-private",
+        "playlist-read-collaborative",
+        "user-library-read",
+    ]
+)
 _AUTH = "https://accounts.spotify.com/authorize"
 _TOKEN = "https://accounts.spotify.com/api/token"  # noqa: S105 — public OAuth endpoint
 

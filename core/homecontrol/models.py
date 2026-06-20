@@ -88,6 +88,31 @@ class VoiceState(BaseModel):
     reply: str = ""  # last spoken reply
 
 
+# --------------------------------------------------------------------------- browse
+
+
+class BrowseItem(BaseModel):
+    """A normalized catalog entry (playlist/album/artist/track) for the browse UI —
+    deliberately small, not raw Spotify JSON, so the contract and the kiosk stay lean."""
+
+    id: str
+    uri: str  # spotify:playlist:… / album / artist / track — what you hand to /api/play
+    type: str  # playlist | album | artist | track
+    name: str
+    subtitle: str = ""  # owner / artist(s) / etc.
+    image: str | None = None
+
+
+class Device(BaseModel):
+    """A Spotify Connect device the user can target for playback."""
+
+    id: str
+    name: str
+    type: str = ""
+    is_active: bool = False
+    volume: int | None = None
+
+
 # ---------------------------------------------------------------------------- unit
 
 
@@ -130,6 +155,21 @@ class SeekBody(BaseModel):
 class CreateTimerBody(BaseModel):
     duration_ms: int = Field(gt=0)
     label: str = ""
+
+
+class PlayBody(BaseModel):
+    """Start playback. Either a context (playlist/album/artist uri) or explicit track uris;
+    device_id picks the target (omitted = the user's current/active device)."""
+
+    device_id: str | None = None
+    context_uri: str | None = None
+    uris: list[str] | None = None
+    offset: int | None = Field(default=None, ge=0)  # index into the context/uris
+
+
+class TransferBody(BaseModel):
+    device_id: str
+    play: bool = True
 
 
 # --------------------------------------------------------------- websocket events
