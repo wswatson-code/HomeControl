@@ -45,6 +45,25 @@ It preserves on-device state not in the repo (venvs, `node_modules`, the built
 whisper.cpp/Piper/models, `unit.env`). It does **not** re-render systemd unit files — if you
 changed a `.service` template, re-run `install.sh` or the relevant `phaseN-*.sh`.
 
+## Browsing Spotify from the kiosk (no phone)
+
+The kiosk's **Browse** button (top-right) lets you pick playlists/albums, search, and start
+playback on any of your Spotify Connect devices — no phone needed. librespot stays the
+player; the Spotify Web API is the catalog + remote.
+
+This needs broader OAuth scopes than Phase 2 minted, so **re-pair once** and replace the
+refresh token:
+
+```bash
+python provisioning/spotify/pair.py --client-id ... --client-secret ...   # now requests library scopes
+sudo nano /etc/homecontrol/unit.env      # paste the new HOMECONTROL_SPOTIFY_REFRESH_TOKEN
+sudo systemctl restart homecontrol-core
+```
+
+The browse endpoints return 503 until Web API creds are present; catalog search needs no
+extra scope, but your playlists/saved albums need the `playlist-read-*` / `user-library-read`
+scopes the updated `pair.py` requests. Premium required (playback). Browse is online-only.
+
 ## Phase 5 — Voice (wake word + STT + TTS)
 
 ```bash

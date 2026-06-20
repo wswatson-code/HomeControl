@@ -5,6 +5,9 @@
   import NowPlaying from "./lib/NowPlaying.svelte";
   import Timers from "./lib/Timers.svelte";
   import VoiceOverlay from "./lib/VoiceOverlay.svelte";
+  import Browse from "./lib/Browse.svelte";
+
+  let showBrowse = false;
 
   onMount(() => {
     connect();
@@ -16,6 +19,7 @@
   <header>
     <span class="room">{$unit ? $unit.room : "HomeControl"}</span>
     <span class="header-right">
+      <button class="browse-btn" on:click={() => (showBrowse = true)}>Browse</button>
       <span class="status" class:online={$connected}>
         {$connected ? "●" : "○"}
       </span>
@@ -27,6 +31,10 @@
 
   <Timers />
   <VoiceOverlay />
+
+  {#if showBrowse}
+    <Browse on:close={() => (showBrowse = false)} />
+  {/if}
 
   {#if !$connected}
     <div class="offline">Reconnecting…</div>
@@ -63,6 +71,15 @@
   }
   .status.online {
     color: var(--accent);
+  }
+  .browse-btn {
+    background: var(--surface);
+    border: none;
+    color: var(--text);
+    font-size: 15px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
   }
   .exit {
     background: none;

@@ -5,7 +5,7 @@
 // than optimistically mutating. Position is interpolated locally between server ticks
 // so the progress bar moves smoothly at 60fps without spamming the network.
 
-import { writable } from "svelte/store";
+import { writable, get } from "svelte/store";
 
 export const connected = writable(false);
 export const unit = writable(null);
@@ -21,6 +21,8 @@ export const player = writable({
 // and the active countdown timers. Both arrive in the snapshot and via their own events.
 export const voice = writable({ phase: "idle", transcript: "", reply: "" });
 export const timers = writable([]);
+// Browse playback target: a Spotify device id, or null = the user's current/active device.
+export const targetDevice = writable(null);
 
 let socket = null;
 let reconnectTimer = null;
@@ -93,6 +95,12 @@ async function del(path) {
   await fetch(`/api${path}`, { method: "DELETE" });
 }
 
+async function getJSON(path) {
+  const r = await fetch(`/api${path}`);
+  if (!r.ok) throw new Error(`${path} -> ${r.status}`);
+  return r.json();
+}
+
 export const commands = {
   play: () => post("/player/play"),
   pause: () => post("/player/pause"),
@@ -105,4 +113,17 @@ export const commands = {
   stopKiosk: () => post("/system/kiosk/stop"),
   addTimer: (duration_ms, label = "") => post("/timer", { duration_ms, label }),
   dismissTimer: (id) => del(`/timer/${id}`),
+
+  // --- browse (Spotify catalog) -------------------------------------------------
+  search: (q) => getJSON(`/search?q=${encodeURIComponent(q)}`),
+  getPlaylists: () => getJSON("/browse/playlists"),
+  getAlbums: () => getJSON("/browse/albums"),
+  getPlaylistTracks: (id) => getJSON(`/browse/playlist/${id}`),
+  getAlbumTracks: (id) => getJSON(`/browse/album/${id}`),
+  getArtist: (id) => getJSON(`/browse/artist/${id}`),
+  getDevices: () => getJSON("/devices"),
+  // Start playback on the chosen target device (null = current/active device).
+  playContent: ({ context_uri = null, uris = null, offset = null } = {}) =>
+    post("/play", { context_uri, uris, offset, device_id: get(targetDevice) }),
+  transfer: (device_id, play = true) => post("/transfer", { device_id, play }),
 };
