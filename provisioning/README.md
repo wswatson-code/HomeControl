@@ -53,6 +53,9 @@ reviewable. Home Assistant itself runs on a **separate host**, not on a unit.
   override). Only the Core Service runs as the `homecontrol` system user.
 - librespot must be built with the `pulseaudio-backend` feature (apt's package is fine; a
   bare `cargo install librespot` is not — it ships rodio only).
+- **Audio HAT (ReSpeaker 2-Mic / WM8960):** use `dtoverlay=wm8960-soundcard`, NOT the Seeed
+  driver — the Seeed driver fails with `No MCLK configured` on Pi 5 and produces silence.
+  Full setup + persistence steps in [`docs/audio-hat.md`](../docs/audio-hat.md).
 - The kiosk UI has a power button (header, top-right) that stops the kiosk service and drops
   to the desktop. It works via a tightly-scoped sudoers grant (`sudoers.d/homecontrol-kiosk`)
   letting the Core Service run exactly `systemctl stop homecontrol-kiosk.service`. `sudo

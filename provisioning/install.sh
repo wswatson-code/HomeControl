@@ -22,6 +22,7 @@ apt-get install -y \
   python3 python3-venv python3-pip \
   curl \
   pipewire pipewire-pulse wireplumber \
+  pulseaudio-utils \
   avahi-daemon
 # Chromium package name varies: `chromium` on Pi OS Bookworm, `chromium-browser` older.
 apt-get install -y chromium || apt-get install -y chromium-browser
@@ -74,6 +75,12 @@ render_unit() {  # render_unit <template> <dest> — fill the @DESKTOP_USER@/@DE
 }
 install -m 644 "${INSTALL_DIR}/provisioning/systemd/homecontrol-core.service" /etc/systemd/system/
 render_unit "${INSTALL_DIR}/provisioning/systemd/homecontrol-kiosk.service" /etc/systemd/system/homecontrol-kiosk.service
+
+echo "==> sudoers: let the Core Service stop the kiosk (UI exit button)"
+# Validate BEFORE installing — a malformed file in /etc/sudoers.d can break sudo entirely.
+visudo -cf "${INSTALL_DIR}/provisioning/sudoers.d/homecontrol-kiosk"
+install -m 0440 -o root -g root "${INSTALL_DIR}/provisioning/sudoers.d/homecontrol-kiosk" /etc/sudoers.d/homecontrol-kiosk
+
 systemctl daemon-reload
 systemctl enable --now homecontrol-core.service
 systemctl enable homecontrol-kiosk.service

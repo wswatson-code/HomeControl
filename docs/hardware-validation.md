@@ -134,6 +134,12 @@ and `chown` the cache dir (`/var/lib/homecontrol/librespot-cache`) to them.
 `sudo -u <desktop-user> XDG_RUNTIME_DIR=/run/user/<uid> pactl list short sinks`, then point
 `HOMECONTROL_LIBRESPOT_DEVICE` at the right one (default is `default`).
 
+**Audio HAT silent / `No MCLK configured` in dmesg** — the Seeed `seeed-voicecard` driver
+doesn't configure MCLK on Pi 5, so the WM8960 codec gets no master clock and every playback
+fails (`ASoC error (-22)`) regardless of mixer settings. Switch to the in-kernel overlay
+(`dtoverlay=wm8960-soundcard`) and follow [`audio-hat.md`](audio-hat.md) — covers the
+overlay, mixer un-mute, sink name, and making it all survive a reboot.
+
 **librespot device missing from the Spotify app** — librespot uses zeroconf/mDNS. Confirm
 `avahi-daemon` is active and the phone is on the same LAN/VLAN (mDNS doesn't cross
 subnets). `journalctl -u librespot`.
