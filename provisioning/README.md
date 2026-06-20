@@ -53,3 +53,7 @@ reviewable. Home Assistant itself runs on a **separate host**, not on a unit.
   override). Only the Core Service runs as the `homecontrol` system user.
 - librespot must be built with the `pulseaudio-backend` feature (apt's package is fine; a
   bare `cargo install librespot` is not — it ships rodio only).
+- The kiosk UI has a power button (header, top-right) that stops the kiosk service and drops
+  to the desktop. It works via a tightly-scoped sudoers grant (`sudoers.d/homecontrol-kiosk`)
+  letting the Core Service run exactly `systemctl stop homecontrol-kiosk.service`. `sudo
+  systemctl stop homecontrol-kiosk` over SSH does the same; `start` brings it back.

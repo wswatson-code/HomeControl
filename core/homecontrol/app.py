@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from . import __version__
-from .api import internal, rest, ws
+from .api import internal, rest, system, ws
 from .config import Settings, settings
 from .state import StateManager
 
@@ -49,6 +49,7 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
     app.include_router(rest.router)
     app.include_router(ws.router)
     app.include_router(internal.router)
+    app.include_router(system.router)
 
     if _UI_DIST.is_dir():
         app.mount("/", StaticFiles(directory=str(_UI_DIST), html=True), name="ui")

@@ -86,4 +86,7 @@ export const commands = {
   previous: () => post("/player/previous"),
   seek: (position_ms) => post("/player/seek", { position_ms: Math.round(position_ms) }),
   setVolume: (volume) => post("/player/volume", { volume: Math.round(volume) }),
+  // Device-local: stops the kiosk service (drops to the desktop). Off the public /api
+  // contract; only meaningful from the on-device kiosk.
+  stopKiosk: () => post("/system/kiosk/stop"),
 };

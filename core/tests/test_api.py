@@ -49,3 +49,30 @@ def test_ws_sends_snapshot_first(client):
         first = ws.receive_json()
         assert first["type"] == "snapshot"
         assert first["data"]["player"]["track"]["title"]
+
+
+def test_kiosk_stop_ok(client, monkeypatch):
+    # Stub the privileged call so the test never touches systemd.
+    import homecontrol.api.system as system
+
+    async def fake_stop():
+        return 0, ""
+
+    monkeypatch.setattr(system, "_stop_kiosk", fake_stop)
+    assert client.post("/api/system/kiosk/stop").json() == {"ok": True}
+
+
+def test_kiosk_stop_reports_failure(client, monkeypatch):
+    import homecontrol.api.system as system
+
+    async def fake_stop():
+        return 1, "Failed to stop homecontrol-kiosk.service: not found"
+
+    monkeypatch.setattr(system, "_stop_kiosk", fake_stop)
+    assert client.post("/api/system/kiosk/stop").status_code == 500
+
+
+def test_kiosk_stop_absent_from_public_contract(client):
+    # Device-local controls must stay out of the OpenAPI surface the apps codegen from.
+    paths = client.get("/openapi.json").json()["paths"]
+    assert "/api/system/kiosk/stop" not in paths

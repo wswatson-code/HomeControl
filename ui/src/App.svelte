@@ -1,6 +1,6 @@
 <script>
   import { onMount } from "svelte";
-  import { connect, connected, unit } from "./lib/store.js";
+  import { connect, connected, unit, commands } from "./lib/store.js";
   import NowPlaying from "./lib/NowPlaying.svelte";
 
   onMount(connect);
@@ -9,8 +9,11 @@
 <main>
   <header>
     <span class="room">{$unit ? $unit.room : "HomeControl"}</span>
-    <span class="status" class:online={$connected}>
-      {$connected ? "●" : "○"}
+    <span class="header-right">
+      <span class="status" class:online={$connected}>
+        {$connected ? "●" : "○"}
+      </span>
+      <button class="exit" on:click={commands.stopKiosk} aria-label="Exit kiosk" title="Exit kiosk">⏻</button>
     </span>
   </header>
 
@@ -40,12 +43,31 @@
     font-size: 16px;
     letter-spacing: 0.5px;
   }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
   .status {
     color: #d9534f;
     font-size: 14px;
   }
   .status.online {
     color: var(--accent);
+  }
+  .exit {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .exit:active {
+    color: #d9534f;
+    background: rgba(255, 255, 255, 0.06);
   }
   .offline {
     position: absolute;

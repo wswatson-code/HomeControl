@@ -1,0 +1,8 @@
+# Let the HomeControl Core Service (running as the `homecontrol` system user) stop ONLY
+# the kiosk unit, so the UI's "exit kiosk" button works without granting broader root.
+# No wildcards: this is the exact, only command homecontrol may run as root. The Core
+# Service invokes it as `sudo -n /usr/bin/systemctl stop homecontrol-kiosk.service`.
+#
+# Installed to /etc/sudoers.d/homecontrol-kiosk (mode 0440) by install.sh, which validates
+# it with `visudo -cf` first — a malformed file here can break sudo system-wide.
+homecontrol ALL=(root) NOPASSWD: /usr/bin/systemctl stop homecontrol-kiosk.service
