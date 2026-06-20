@@ -30,12 +30,24 @@ room as a Connect device; the Core Service drives it via the Web API and reflect
 state from `--onevent` hooks. Phase 2 plays audio directly (pulseaudio backend); the
 switch to the Snapcast FIFO happens in Phase 3.
 
+## Phase 5 — Voice (wake word + STT + TTS)
+
+```bash
+sudo ./provisioning/phase5-voice.sh          # builds whisper.cpp, fetches models, installs the unit
+sudo systemctl enable --now homecontrol-voice
+```
+
+On-device, no cloud: openWakeWord → whisper.cpp → intent → Core API → Piper TTS, plus
+countdown timers/alarms. Runs as its own service (`homecontrol-voice`, as the desktop
+session user — needs the PipeWire mic/speaker). Requires the audio HAT working first
+(mic + speaker). Wake word and models are configurable in `unit.env`. Full guide:
+[`docs/voice.md`](../docs/voice.md).
+
 ## What lands in later phases (not installed yet)
 
 | Phase | Adds |
 |------|------|
 | 3 — Multi-room | `snapserver` / `snapclient`, group config, librespot → FIFO |
-| 5 — Voice | openWakeWord + Vosk/whisper.cpp + Piper models, ReSpeaker mic driver |
 | 6 — Intercom | `aiortc` deps, WebRTC signaling |
 | 6.5 — Smart home | Home Assistant URL + long-lived token in `unit.env` |
 

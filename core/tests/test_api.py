@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -76,3 +78,57 @@ def test_kiosk_stop_absent_from_public_contract(client):
     # Device-local controls must stay out of the OpenAPI surface the apps codegen from.
     paths = client.get("/openapi.json").json()["paths"]
     assert "/api/system/kiosk/stop" not in paths
+
+
+# ----------------------------------------------------------------------------- timers
+
+
+def test_create_timer(client):
+    snap = client.post("/api/timer", json={"duration_ms": 60000, "label": "tea"}).json()
+    assert len(snap["timers"]) == 1
+    t = snap["timers"][0]
+    assert t["label"] == "tea"
+    assert t["state"] == "running"
+    assert t["duration_ms"] == 60000
+    assert t["fires_at_ms"] > 0
+
+
+def test_create_timer_rejects_nonpositive(client):
+    assert client.post("/api/timer", json={"duration_ms": 0}).status_code == 422
+
+
+def test_dismiss_timer(client):
+    tid = client.post("/api/timer", json={"duration_ms": 60000}).json()["timers"][0]["id"]
+    snap = client.delete(f"/api/timer/{tid}").json()
+    assert snap["timers"] == []
+
+
+def test_dismiss_unknown_timer_404(client):
+    assert client.delete("/api/timer/nope").status_code == 404
+
+
+def test_timer_fires(client):
+    # A short timer should flip to FIRED on its own (stays in the list, ringing).
+    client.post("/api/timer", json={"duration_ms": 50, "label": "quick"})
+    deadline = time.monotonic() + 3.0
+    while time.monotonic() < deadline:
+        timers = client.get("/api/state").json()["timers"]
+        if timers and timers[0]["state"] == "fired":
+            break
+        time.sleep(0.05)
+    timers = client.get("/api/state").json()["timers"]
+    assert timers and timers[0]["state"] == "fired"
+
+
+# ------------------------------------------------------------------------------ voice
+
+
+def test_voice_state_internal_updates_snapshot(client):
+    r = client.post("/internal/voice/state", json={"phase": "listening", "transcript": ""})
+    assert r.json() == {"ok": True}
+    assert client.get("/api/state").json()["voice"]["phase"] == "listening"
+
+
+def test_voice_state_absent_from_public_contract(client):
+    paths = client.get("/openapi.json").json()["paths"]
+    assert "/internal/voice/state" not in paths

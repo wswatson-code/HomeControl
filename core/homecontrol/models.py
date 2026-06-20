@@ -51,6 +51,43 @@ class PlayerState(BaseModel):
     repeat: RepeatMode = RepeatMode.OFF
 
 
+# --------------------------------------------------------------------------- timers
+
+
+class TimerState(StrEnum):
+    RUNNING = "running"
+    FIRED = "fired"  # elapsed; stays in the list (ringing) until dismissed
+
+
+class TimerInfo(BaseModel):
+    """A countdown timer or alarm. `fires_at_ms` is a Unix epoch so the UI can count
+    down locally between server ticks (like player position), no polling needed."""
+
+    id: str
+    label: str = ""
+    duration_ms: int  # original requested duration
+    fires_at_ms: int  # Unix epoch ms when it fires
+    state: TimerState = TimerState.RUNNING
+
+
+# ---------------------------------------------------------------------------- voice
+
+
+class VoicePhase(StrEnum):
+    IDLE = "idle"  # waiting for the wake word
+    LISTENING = "listening"  # wake word heard, capturing the command
+    THINKING = "thinking"  # running STT + intent
+    SPEAKING = "speaking"  # TTS reply playing
+
+
+class VoiceState(BaseModel):
+    """What the voice pipeline is doing — drives the kiosk's listening overlay."""
+
+    phase: VoicePhase = VoicePhase.IDLE
+    transcript: str = ""  # last recognized command
+    reply: str = ""  # last spoken reply
+
+
 # ---------------------------------------------------------------------------- unit
 
 
@@ -74,6 +111,8 @@ class Snapshot(BaseModel):
 
     unit: UnitInfo
     player: PlayerState
+    timers: list[TimerInfo] = Field(default_factory=list)
+    voice: VoiceState = Field(default_factory=VoiceState)
     version: str
 
 
@@ -88,6 +127,11 @@ class SeekBody(BaseModel):
     position_ms: int = Field(ge=0)
 
 
+class CreateTimerBody(BaseModel):
+    duration_ms: int = Field(gt=0)
+    label: str = ""
+
+
 # --------------------------------------------------------------- websocket events
 
 
@@ -95,6 +139,8 @@ class EventType(StrEnum):
     SNAPSHOT = "snapshot"  # full state (sent once on connect)
     PLAYER = "player"  # PlayerState changed
     UNIT = "unit"  # UnitInfo changed
+    TIMERS = "timers"  # the active-timer list changed (created/fired/dismissed)
+    VOICE = "voice"  # VoiceState changed (listening overlay)
 
 
 class Event(BaseModel):

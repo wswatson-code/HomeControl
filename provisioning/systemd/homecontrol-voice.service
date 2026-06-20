@@ -1,0 +1,22 @@
+[Unit]
+Description=HomeControl voice pipeline (wake word + whisper.cpp STT + Piper TTS)
+# Needs the Core Service (it drives playback/timers through its API) and the desktop
+# session (for the PipeWire mic + speaker). graphical.target guarantees the user session.
+After=network-online.target homecontrol-core.service graphical.target
+Wants=network-online.target homecontrol-core.service
+
+[Service]
+Type=simple
+# Runs as the DESKTOP session user: mic capture and TTS playback go through that user's
+# PipeWire session at /run/user/<uid> — the homecontrol nologin account has none (same
+# rationale as librespot). install.sh / phase5-voice.sh fill these placeholders from the
+# uid-1000 account.
+User=@DESKTOP_USER@
+Environment=XDG_RUNTIME_DIR=/run/user/@DESKTOP_UID@
+EnvironmentFile=-/etc/homecontrol/unit.env
+ExecStart=/opt/homecontrol/voice/.venv/bin/python -m homecontrol_voice
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=graphical.target

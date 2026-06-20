@@ -2,6 +2,8 @@
   import { onMount } from "svelte";
   import { connect, connected, unit, commands } from "./lib/store.js";
   import NowPlaying from "./lib/NowPlaying.svelte";
+  import Timers from "./lib/Timers.svelte";
+  import VoiceOverlay from "./lib/VoiceOverlay.svelte";
 
   onMount(connect);
 </script>
@@ -18,6 +20,9 @@
   </header>
 
   <NowPlaying />
+
+  <Timers />
+  <VoiceOverlay />
 
   {#if !$connected}
     <div class="offline">Reconnecting…</div>

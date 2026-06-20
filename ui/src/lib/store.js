@@ -17,6 +17,10 @@ export const player = writable({
   shuffle: false,
   repeat: "off",
 });
+// Phase 5 voice: pipeline phase (idle/listening/thinking/speaking) + last transcript/reply,
+// and the active countdown timers. Both arrive in the snapshot and via their own events.
+export const voice = writable({ phase: "idle", transcript: "", reply: "" });
+export const timers = writable([]);
 
 let socket = null;
 let reconnectTimer = null;
@@ -30,10 +34,16 @@ function onMessage(event) {
   if (msg.type === "snapshot") {
     unit.set(msg.data.unit);
     applyPlayer(msg.data.player);
+    timers.set(msg.data.timers ?? []);
+    if (msg.data.voice) voice.set(msg.data.voice);
   } else if (msg.type === "player") {
     applyPlayer(msg.data);
   } else if (msg.type === "unit") {
     unit.set(msg.data);
+  } else if (msg.type === "timers") {
+    timers.set(msg.data.timers);
+  } else if (msg.type === "voice") {
+    voice.set(msg.data);
   }
 }
 
@@ -79,6 +89,10 @@ async function post(path, body) {
   });
 }
 
+async function del(path) {
+  await fetch(`/api${path}`, { method: "DELETE" });
+}
+
 export const commands = {
   play: () => post("/player/play"),
   pause: () => post("/player/pause"),
@@ -89,4 +103,6 @@ export const commands = {
   // Device-local: stops the kiosk service (drops to the desktop). Off the public /api
   // contract; only meaningful from the on-device kiosk.
   stopKiosk: () => post("/system/kiosk/stop"),
+  addTimer: (duration_ms, label = "") => post("/timer", { duration_ms, label }),
+  dismissTimer: (id) => del(`/timer/${id}`),
 };

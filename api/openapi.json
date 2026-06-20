@@ -214,10 +214,112 @@
           }
         }
       }
+    },
+    "/api/timer": {
+      "post": {
+        "tags": [
+          "control"
+        ],
+        "summary": "Create Timer",
+        "operationId": "create_timer_api_timer_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTimerBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Snapshot"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/timer/{timer_id}": {
+      "delete": {
+        "tags": [
+          "control"
+        ],
+        "summary": "Dismiss Timer",
+        "operationId": "dismiss_timer_api_timer__timer_id__delete",
+        "parameters": [
+          {
+            "name": "timer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Timer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Snapshot"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "CreateTimerBody": {
+        "properties": {
+          "duration_ms": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Duration Ms"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "duration_ms"
+        ],
+        "title": "CreateTimerBody"
+      },
       "GroupRole": {
         "type": "string",
         "enum": [
@@ -323,6 +425,16 @@
           "player": {
             "$ref": "#/components/schemas/PlayerState"
           },
+          "timers": {
+            "items": {
+              "$ref": "#/components/schemas/TimerInfo"
+            },
+            "type": "array",
+            "title": "Timers"
+          },
+          "voice": {
+            "$ref": "#/components/schemas/VoiceState"
+          },
           "version": {
             "type": "string",
             "title": "Version"
@@ -336,6 +448,47 @@
         ],
         "title": "Snapshot",
         "description": "Full state returned by GET /api/state and pushed on WS connect."
+      },
+      "TimerInfo": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "default": ""
+          },
+          "duration_ms": {
+            "type": "integer",
+            "title": "Duration Ms"
+          },
+          "fires_at_ms": {
+            "type": "integer",
+            "title": "Fires At Ms"
+          },
+          "state": {
+            "$ref": "#/components/schemas/TimerState",
+            "default": "running"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "duration_ms",
+          "fires_at_ms"
+        ],
+        "title": "TimerInfo",
+        "description": "A countdown timer or alarm. `fires_at_ms` is a Unix epoch so the UI can count\ndown locally between server ticks (like player position), no polling needed."
+      },
+      "TimerState": {
+        "type": "string",
+        "enum": [
+          "running",
+          "fired"
+        ],
+        "title": "TimerState"
       },
       "Track": {
         "properties": {
@@ -454,6 +607,37 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "VoicePhase": {
+        "type": "string",
+        "enum": [
+          "idle",
+          "listening",
+          "thinking",
+          "speaking"
+        ],
+        "title": "VoicePhase"
+      },
+      "VoiceState": {
+        "properties": {
+          "phase": {
+            "$ref": "#/components/schemas/VoicePhase",
+            "default": "idle"
+          },
+          "transcript": {
+            "type": "string",
+            "title": "Transcript",
+            "default": ""
+          },
+          "reply": {
+            "type": "string",
+            "title": "Reply",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "VoiceState",
+        "description": "What the voice pipeline is doing \u2014 drives the kiosk's listening overlay."
       },
       "VolumeBody": {
         "properties": {

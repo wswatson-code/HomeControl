@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request
 
+from ..models import VoiceState
 from ..state import StateManager
 
 # include_in_schema=False keeps these routes out of /openapi.json — the apps codegen
@@ -21,4 +22,13 @@ router = APIRouter(prefix="/internal", tags=["internal"], include_in_schema=Fals
 async def spotify_event(request: Request, env: dict[str, str]) -> dict:
     manager: StateManager = request.app.state.manager
     await manager.handle_spotify_event(env)
+    return {"ok": True}
+
+
+@router.post("/voice/state")
+async def voice_state(request: Request, voice: VoiceState) -> dict:
+    """The voice service reports its phase/transcript so the kiosk can show a listening
+    overlay. Localhost-only, off the public contract (same rationale as the events above)."""
+    manager: StateManager = request.app.state.manager
+    await manager.set_voice_state(voice)
     return {"ok": True}

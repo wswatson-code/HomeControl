@@ -7,9 +7,9 @@ the socket reconcile.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 
-from ..models import SeekBody, Snapshot, VolumeBody
+from ..models import CreateTimerBody, SeekBody, Snapshot, VolumeBody
 from ..state import StateManager
 
 router = APIRouter(prefix="/api", tags=["control"])
@@ -68,4 +68,22 @@ async def seek(request: Request, body: SeekBody) -> Snapshot:
 async def set_volume(request: Request, body: VolumeBody) -> Snapshot:
     mgr = _state(request)
     await mgr.spotify.set_volume(body.volume)
+    return mgr.snapshot()
+
+
+# ------------------------------------------------------------------------------ timers
+
+
+@router.post("/timer", response_model=Snapshot)
+async def create_timer(request: Request, body: CreateTimerBody) -> Snapshot:
+    mgr = _state(request)
+    await mgr.timers.create(body.duration_ms, body.label)
+    return mgr.snapshot()
+
+
+@router.delete("/timer/{timer_id}", response_model=Snapshot)
+async def dismiss_timer(request: Request, timer_id: str) -> Snapshot:
+    mgr = _state(request)
+    if not await mgr.timers.dismiss(timer_id):
+        raise HTTPException(status_code=404, detail=f"no timer {timer_id!r}")
     return mgr.snapshot()
