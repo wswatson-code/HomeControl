@@ -47,10 +47,17 @@ if [[ -x "${INSTALL_DIR}/voice/.venv/bin/pip" ]]; then
 fi
 
 echo "==> Rebuild kiosk UI"
-if command -v npm >/dev/null 2>&1; then
-  (cd "${INSTALL_DIR}/ui" && sudo -u "${SERVICE_USER}" npm ci --silent && sudo -u "${SERVICE_USER}" npm run build)
+# node/npm is usually per-user (nvm), so it's absent for root (this script) and the nologin
+# service user. Build in the checkout as the human who ran sudo, via a login shell so their
+# nvm/PATH loads, then copy the built dist into /opt (which they can't write directly).
+BUILD_USER="${SUDO_USER:-root}"
+if sudo -u "${BUILD_USER}" bash -lc 'command -v npm >/dev/null 2>&1'; then
+  sudo -u "${BUILD_USER}" bash -lc "cd '${REPO_DIR}/ui' && npm ci --silent && npm run build"
+  rm -rf "${INSTALL_DIR}/ui/dist"
+  cp -r "${REPO_DIR}/ui/dist" "${INSTALL_DIR}/ui/dist"
+  chown -R "${SERVICE_USER}:${SERVICE_USER}" "${INSTALL_DIR}/ui/dist"
 else
-  echo "    npm not found — build ui/ on a dev box and copy dist/ to ${INSTALL_DIR}/ui/dist"
+  echo "    npm not found for ${BUILD_USER} — build ui/ and copy dist/ to ${INSTALL_DIR}/ui/dist"
 fi
 
 echo "==> Restart services"
