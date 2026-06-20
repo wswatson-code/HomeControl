@@ -67,6 +67,7 @@ sit bottom-right and pulse/ring when they fire (tap ✕ to dismiss).
 |-----|---------|-------|
 | `HOMECONTROL_VOICE_WAKE_MODEL` | `hey_jarvis` | one or more (comma-separated) bundled names and/or `.onnx` paths; wakes on any |
 | `HOMECONTROL_VOICE_WAKE_THRESHOLD` | `0.5` | raise if it triggers on noise, lower if it misses |
+| `HOMECONTROL_VOICE_LISTEN_CHIME` | `true` | play a short chime when the wake word is heard; `false` to stay silent |
 | `HOMECONTROL_VOICE_COMMAND_SECONDS` | `5` | how long it records after the wake word |
 | `HOMECONTROL_VOICE_INPUT_DEVICE` | (empty) | PipeWire source; empty = system default (the HAT) |
 | `HOMECONTROL_VOICE_OUTPUT_DEVICE` | (empty) | PipeWire sink for TTS; empty = default |

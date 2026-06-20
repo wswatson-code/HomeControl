@@ -82,6 +82,7 @@ grep -q HOMECONTROL_VOICE_WAKE_MODEL /etc/homecontrol/unit.env 2>/dev/null || ca
 # hey_rhasspy) and/or .onnx paths; the unit wakes on any of them.
 HOMECONTROL_VOICE_WAKE_MODEL=hey_jarvis
 HOMECONTROL_VOICE_WAKE_THRESHOLD=0.5
+HOMECONTROL_VOICE_LISTEN_CHIME=true
 HOMECONTROL_VOICE_COMMAND_SECONDS=5
 # Leave INPUT_DEVICE/OUTPUT_DEVICE empty to use the PipeWire default (the HAT).
 HOMECONTROL_VOICE_INPUT_DEVICE=

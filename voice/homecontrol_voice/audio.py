@@ -14,6 +14,7 @@ INPUT_DEVICE / OUTPUT_DEVICE, when set, are PipeWire source / sink names (as sho
 from __future__ import annotations
 
 import subprocess
+import tempfile
 import wave
 from collections.abc import Iterator
 from typing import BinaryIO
@@ -102,3 +103,26 @@ def play_wav(path: str, device: str = "") -> None:
         cmd.append(f"--device={device}")
     cmd.append(path)
     subprocess.run(cmd, check=False)
+
+
+def _tone(freq: float, dur: float, sample_rate: int) -> np.ndarray:
+    """A single faded sine segment (fades avoid clicks at the edges)."""
+    t = np.linspace(0, dur, int(sample_rate * dur), endpoint=False)
+    seg = 0.3 * np.sin(2 * np.pi * freq * t)
+    fade = max(1, int(sample_rate * 0.008))
+    seg[:fade] *= np.linspace(0, 1, fade)
+    seg[-fade:] *= np.linspace(1, 0, fade)
+    return seg
+
+
+def play_chime(device: str = "", sample_rate: int = 16000) -> None:
+    """Short rising two-tone 'listening' cue, synthesized on the fly (no shipped asset).
+
+    Blocking (paplay), so the pipeline can play it BEFORE opening the mic — the chime
+    finishes before recording starts and never bleeds into the captured command.
+    """
+    audio = np.concatenate([_tone(660, 0.09, sample_rate), _tone(990, 0.09, sample_rate)])
+    pcm = (audio * 32767).astype(np.int16)
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=True) as tmp:
+        write_wav(tmp.name, pcm, sample_rate)
+        play_wav(tmp.name, device)

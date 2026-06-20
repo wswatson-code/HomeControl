@@ -14,7 +14,7 @@ import logging
 import httpx
 
 from .actions import Actions
-from .audio import record
+from .audio import play_chime, record
 from .config import VoiceConfig
 from .intent import parse
 from .stt import Transcriber
@@ -49,6 +49,9 @@ class Pipeline:
     async def _handle_utterance(self, actions: Actions) -> None:
         cfg = self._cfg
         await actions.report_state("listening")
+        # Chime BEFORE opening the mic so it finishes before recording and isn't captured.
+        if cfg.listen_chime:
+            await asyncio.to_thread(play_chime, cfg.output_device, cfg.sample_rate)
         audio = await asyncio.to_thread(
             record, cfg.command_seconds, cfg.sample_rate, cfg.input_device
         )

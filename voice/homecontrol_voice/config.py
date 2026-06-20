@@ -31,6 +31,13 @@ def _get_float(key: str, default: float) -> float:
         return default
 
 
+def _get_bool(key: str, default: bool) -> bool:
+    v = os.getenv(_PREFIX + key)
+    if v is None:
+        return default
+    return v.strip().lower() in ("1", "true", "yes", "on")
+
+
 @dataclass(frozen=True)
 class VoiceConfig:
     # Where the Core Service lives (same box).
@@ -56,6 +63,10 @@ class VoiceConfig:
     # 80 ms wake-word frame size assumes it. Exposed only so the guard below can reject a
     # mistaken override loudly instead of silently feeding both models garbage.
     sample_rate: int = _get_int("SAMPLE_RATE", 16000)
+
+    # Play a short chime when the wake word is heard, before recording the command
+    # (audible "I'm listening" cue). Set false to stay silent.
+    listen_chime: bool = _get_bool("LISTEN_CHIME", True)
 
     # How long to record after the wake word before transcribing (seconds).
     command_seconds: float = _get_float("COMMAND_SECONDS", 5.0)
