@@ -176,13 +176,18 @@ class SpotifyWebClient:
         return {"items": items, "total": data.get("total", 0), "offset": offset, "limit": limit}
 
     async def playlist_tracks(self, playlist_id: str, limit: int = 100, offset: int = 0) -> dict:
-        data = await self._get_json(f"/playlists/{playlist_id}/tracks", limit=limit, offset=offset)
-        tracks = [_to_track(it["track"]) for it in data.get("items", []) if it.get("track")]
+        # market=from_token: required for track relinking/availability (its absence 400s).
+        # Guard null items (Spotify includes them) and skip non-track entries (podcast
+        # episodes have no track/artists) so one odd row can't 500 the whole playlist.
+        data = await self._get_json(
+            f"/playlists/{playlist_id}/tracks", market="from_token", limit=limit, offset=offset
+        )
+        tracks = [_to_track(it["track"]) for it in data.get("items", []) if it and it.get("track")]
         return {"tracks": tracks, "total": data.get("total", 0), "offset": offset, "limit": limit}
 
     async def album_tracks(self, album_id: str, limit: int = 50, offset: int = 0) -> dict:
         # Album-track items carry no album image; the UI shows the album art at the header.
-        data = await self._get_json(f"/albums/{album_id}/tracks", limit=limit, offset=offset)
+        data = await self._get_json(f"/albums/{album_id}/tracks", market="from_token", limit=limit, offset=offset)
         tracks = [_to_track(t) for t in data.get("items", []) if t]
         return {"tracks": tracks, "total": data.get("total", 0), "offset": offset, "limit": limit}
 
@@ -208,6 +213,23 @@ class SpotifyWebClient:
             if d.get("id")
         ]
 
+    async def resolve_device_id(self, device_id: str | None) -> str | None:
+        """Pick the device to play on: the requested one if it's currently available, else
+        THIS unit's local librespot device (matched by advertised name). None means 'no
+        specific device' — Spotify then uses the user's active device (last-ditch fallback).
+        """
+        try:
+            devices = await self.list_devices()
+        except SpotifyError:
+            devices = []
+        if device_id and any(d.id == device_id for d in devices):
+            return device_id  # requested device is online — honor it
+        for d in devices:  # fall back to the local librespot device by name
+            if d.name == self._device_name:
+                self._device_id = d.id
+                return d.id
+        return None
+
     async def play_context(
         self,
         *,
@@ -216,6 +238,7 @@ class SpotifyWebClient:
         uris: list[str] | None = None,
         offset: int | None = None,
     ) -> None:
+        target = await self.resolve_device_id(device_id)
         body: dict = {}
         if context_uri:
             body["context_uri"] = context_uri
@@ -223,7 +246,7 @@ class SpotifyWebClient:
             body["uris"] = uris
         if offset is not None:
             body["offset"] = {"position": offset}
-        params = {"device_id": device_id} if device_id else {}
+        params = {"device_id": target} if target else {}
         resp = await self._request("PUT", "/me/player/play", params=params, json=body)
         if resp.status_code not in (200, 202, 204):
             raise SpotifyError(f"play -> {resp.status_code} {resp.text}")
@@ -239,11 +262,12 @@ def _first_image(images: list[dict]) -> str | None:
 
 
 def _to_track(t: dict) -> Track:
-    album = t.get("album", {})
+    album = t.get("album") or {}
+    artists = t.get("artists") or []  # may be None/absent for episodes or malformed rows
     return Track(
-        id=t.get("id", ""),
+        id=t.get("id") or "",
         title=t.get("name", ""),
-        artist=", ".join(a["name"] for a in t.get("artists", [])),
+        artist=", ".join(a["name"] for a in artists if isinstance(a, dict) and "name" in a),
         album=album.get("name", ""),
         artwork_url=_first_image(album.get("images", [])),
         duration_ms=t.get("duration_ms", 0),

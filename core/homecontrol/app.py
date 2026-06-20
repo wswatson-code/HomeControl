@@ -10,13 +10,15 @@ from __future__ import annotations
 import contextlib
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import __version__
 from .api import internal, rest, system, ws
 from .config import Settings, settings
+from .spotify.web import SpotifyError
 from .state import StateManager
 
 # ui/dist relative to repo root (../../ui/dist from this file). Served only if built.
@@ -37,6 +39,13 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
             await manager.stop()
 
     app = FastAPI(title="HomeControl Core Service", version=__version__, lifespan=lifespan)
+
+    # A Spotify Web API failure (token/scope/region/upstream) is an external-service error,
+    # not a bug in us — surface it as 503 so the UI can say "Spotify unavailable" instead of
+    # showing an opaque 500.
+    @app.exception_handler(SpotifyError)
+    async def _spotify_error(_request: Request, exc: SpotifyError) -> JSONResponse:
+        return JSONResponse(status_code=503, content={"detail": str(exc)})
 
     # Dev convenience: the Vite dev server (port 5173) calls the API cross-origin.
     app.add_middleware(

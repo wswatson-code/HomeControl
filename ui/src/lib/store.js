@@ -21,8 +21,28 @@ export const player = writable({
 // and the active countdown timers. Both arrive in the snapshot and via their own events.
 export const voice = writable({ phase: "idle", transcript: "", reply: "" });
 export const timers = writable([]);
-// Browse playback target: a Spotify device id, or null = the user's current/active device.
-export const targetDevice = writable(null);
+// Browse playback target: a Spotify device id, or null = fall back to the local device.
+// Persisted to localStorage so the choice survives reloads/reboots.
+function persistentDevice() {
+  const key = "homecontrol.targetDevice";
+  let initial = null;
+  try {
+    initial = localStorage.getItem(key);
+  } catch {
+    /* localStorage unavailable */
+  }
+  const store = writable(initial);
+  store.subscribe((v) => {
+    try {
+      if (v == null) localStorage.removeItem(key);
+      else localStorage.setItem(key, v);
+    } catch {
+      /* ignore */
+    }
+  });
+  return store;
+}
+export const targetDevice = persistentDevice();
 // Whether the Browse screen is open (shared so the now-playing button + startup auto-open
 // can both drive it).
 export const showBrowse = writable(false);

@@ -240,3 +240,18 @@ def test_transfer_passes_through(browse_client):
     client, fake = browse_client
     client.post("/api/transfer", json={"device_id": "d1", "play": True})
     assert fake.transferred == {"device_id": "d1", "play": True}
+
+
+def test_catalog_error_becomes_503(client):
+    # A Spotify Web API failure surfaces as 503 (external service), not an opaque 500.
+    from homecontrol.spotify.web import SpotifyError
+
+    class Boom:
+        async def my_playlists(self, limit=50, offset=0):
+            raise SpotifyError("token dead")
+
+        async def aclose(self):
+            pass
+
+    client.app.state.manager.catalog = Boom()
+    assert client.get("/api/browse/playlists").status_code == 503
