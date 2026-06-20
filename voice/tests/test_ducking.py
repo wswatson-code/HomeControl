@@ -48,28 +48,28 @@ def test_finds_only_librespot_stream(fake_pactl):
     assert ducking._librespot_sink_inputs() == [45]  # not the paplay stream (#46)
 
 
-def test_parses_raw_volume(fake_pactl):
-    assert ducking._volume(45) == 40000
+def test_parses_volume_percent(fake_pactl):
+    assert ducking._volume_percent(45) == 61
 
 
 def test_duck_scales_from_original(fake_pactl):
     ducking.duck(0.25)
     sets = [c for c in fake_pactl if c[:2] == ["pactl", "set-sink-input-volume"]]
-    assert sets == [["pactl", "set-sink-input-volume", "45", "10000"]]  # 40000 * 0.25
+    assert sets == [["pactl", "set-sink-input-volume", "45", "15%"]]  # int(61 * 0.25)
 
 
 def test_reduck_scales_from_saved_original_not_current(fake_pactl):
-    ducking.duck(0.25)  # -> 10000
-    ducking.duck(0.50)  # must be 50% of ORIGINAL 40000 = 20000, not of 10000
+    ducking.duck(0.25)  # -> 15%
+    ducking.duck(0.50)  # must be 50% of ORIGINAL 61% = 30%, not of 15%
     sets = [c[3] for c in fake_pactl if c[:2] == ["pactl", "set-sink-input-volume"]]
-    assert sets == ["10000", "20000"]
+    assert sets == ["15%", "30%"]
 
 
 def test_restore_returns_to_original_and_clears(fake_pactl):
     ducking.duck(0.25)
     ducking.restore()
     last = [c for c in fake_pactl if c[:2] == ["pactl", "set-sink-input-volume"]][-1]
-    assert last == ["pactl", "set-sink-input-volume", "45", "40000"]
+    assert last == ["pactl", "set-sink-input-volume", "45", "61%"]
     assert ducking._saved == {}
 
 

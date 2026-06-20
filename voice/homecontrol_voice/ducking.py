@@ -17,8 +17,10 @@ import subprocess
 
 log = logging.getLogger(__name__)
 
-# sink-input id -> pre-duck volume (raw pulse scale, 0..65536). Saved on the first duck of
-# a cycle so later re-ducks scale from the original, and restore() puts it back exactly.
+# sink-input id -> pre-duck volume PERCENT. Saved on the first duck of a cycle so later
+# re-ducks scale from the original, and restore() puts it back exactly. We work in percent
+# (not the raw 0..65536 value) because PipeWire's pactl ignores a bare integer volume but
+# honors the "<n>%" form.
 _saved: dict[int, int] = {}
 
 
@@ -51,17 +53,18 @@ def _librespot_sink_inputs() -> list[int]:
     return ids
 
 
-def _volume(sink_input_id: int) -> int | None:
+def _volume_percent(sink_input_id: int) -> int | None:
     proc = _run(["pactl", "get-sink-input-volume", str(sink_input_id)])
     if proc is None or proc.returncode != 0:
         return None
-    # e.g. "Volume: front-left: 40000 /  61% ...": grab the first raw value before the slash.
-    m = re.search(r":\s*(\d+)\s*/", proc.stdout)
+    # e.g. "Volume: front-left: 40000 /  61% ...": grab the first percentage.
+    m = re.search(r"/\s*(\d+)\s*%", proc.stdout)
     return int(m.group(1)) if m else None
 
 
-def _set_volume(sink_input_id: int, volume: int) -> None:
-    _run(["pactl", "set-sink-input-volume", str(sink_input_id), str(max(0, volume))])
+def _set_percent(sink_input_id: int, percent: int) -> None:
+    # The "<n>%" form is what PipeWire's pactl honors (a bare integer is ignored).
+    _run(["pactl", "set-sink-input-volume", str(sink_input_id), f"{max(0, percent)}%"])
 
 
 def duck(level: float) -> None:
@@ -73,15 +76,15 @@ def duck(level: float) -> None:
     level = max(0.0, min(1.0, level))
     for sid in _librespot_sink_inputs():
         if sid not in _saved:
-            v = _volume(sid)
-            if v is None:
+            pct = _volume_percent(sid)
+            if pct is None:
                 continue
-            _saved[sid] = v
-        _set_volume(sid, int(_saved[sid] * level))
+            _saved[sid] = pct
+        _set_percent(sid, int(_saved[sid] * level))
 
 
 def restore() -> None:
     """Restore every ducked stream to its captured pre-duck volume."""
-    for sid, vol in list(_saved.items()):
-        _set_volume(sid, vol)
+    for sid, pct in list(_saved.items()):
+        _set_percent(sid, pct)
     _saved.clear()
