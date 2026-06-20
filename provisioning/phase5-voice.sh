@@ -20,9 +20,10 @@ DESKTOP_USER="${DESKTOP_USER:-$(getent passwd 1000 | cut -d: -f1)}"
 DESKTOP_UID="$(id -u "${DESKTOP_USER}")"
 echo "==> Desktop session user: ${DESKTOP_USER} (uid ${DESKTOP_UID})"
 
-echo "==> System packages (build tools + PortAudio for capture)"
+echo "==> System packages (build tools for whisper.cpp; capture/playback use parec/paplay)"
 apt-get update
-apt-get install -y git cmake build-essential libportaudio2 wget
+apt-get install -y git cmake build-essential wget
+# parec/paplay come from pulseaudio-utils (installed by install.sh at Phase 0).
 
 echo "==> Voice venv + Python deps"
 # Built/owned root, world-readable: the service (desktop user) only needs read+exec.

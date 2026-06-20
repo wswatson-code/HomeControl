@@ -18,7 +18,8 @@ dependencies = [
 # 3.13 (Pi OS Trixie). phase5-voice.sh installs it with --no-deps and we run it on the ONNX
 # backend (onnxruntime, below) instead — see wakeword.py.
 pipeline = [
-    "sounddevice>=0.4",
+    # Audio capture/playback is via parec/paplay (pulseaudio-utils), not PortAudio — the
+    # ALSA→pulse bridge sounddevice uses is unreliable on PipeWire. So no sounddevice here.
     "numpy>=1.26",
     "onnxruntime>=1.17",
     # openWakeWord's own runtime deps (since we install it --no-deps): it imports sklearn
