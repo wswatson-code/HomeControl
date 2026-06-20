@@ -86,11 +86,22 @@ scored every frame, so adding more has a small CPU cost — keep it to a couple 
 
 ## Troubleshooting
 
-**Nothing happens on the wake word** — confirm capture works at the OS layer first
-(`pw-record`, see audio-hat.md). Then watch `journalctl -u homecontrol-voice -f` while you
-speak; if there's no "wake word detected", lower `HOMECONTROL_VOICE_WAKE_THRESHOLD` or set
-`HOMECONTROL_VOICE_INPUT_DEVICE` to the HAT source explicitly (the default may have picked
-the wrong device).
+**Nothing happens on the wake word** — almost always the mic, in this order:
+
+1. **Capture is silent (level 0).** The WM8960 mic path comes up muted/unrouted on the
+   mainline overlay. Enable LINPUT1/RINPUT1 and persist — see the **Mic (input)** section of
+   [audio-hat.md](audio-hat.md). Validate with the `parec`/level check there before blaming
+   the model.
+2. **Default source comes up empty.** Pin the mic explicitly:
+   ```
+   HOMECONTROL_VOICE_INPUT_DEVICE=alsa_input.platform-soc_107c000000_sound.stereo-fallback
+   ```
+   (the source name from `pactl list short sources`). The default-source capture path is
+   flaky; the explicit name is deterministic.
+3. **Audio's fine but it won't trigger** — lower `HOMECONTROL_VOICE_WAKE_THRESHOLD` (try 0.3).
+
+To see live scores while you speak, run the parec + openWakeWord snippet from the bring-up
+notes; `mic_level` moving but score flat = recognition/threshold, `mic_level` flat = capture.
 
 **Wakes but misrecognizes** — `tiny.en` is fast but rough. Switch the model to `base.en`
 (download it, point `HOMECONTROL_VOICE_WHISPER_MODEL` at it). Expect higher latency.

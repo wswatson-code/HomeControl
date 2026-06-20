@@ -104,14 +104,41 @@ plays regardless of the default — but the default still matters for voice (Pha
 
 ## Mic (input)
 
-The duplex profile also exposes `alsa_input.platform-soc_107c000000_sound.stereo-fallback`.
-Nothing in HomeControl consumes a mic until Phase 5 (wakeword + STT); for now just confirm
-capture works:
+The duplex profile also exposes the mic source
+`alsa_input.platform-soc_107c000000_sound.stereo-fallback`. Phase 5 (voice) consumes it; you
+can validate it now.
+
+**The mainline overlay brings the mic up muted/unrouted.** Unlike Seeed's driver, the
+in-kernel `wm8960-soundcard` doesn't know the HAT's mic wiring, so the capture stream runs
+but delivers pure silence (level 0) until you route the mics. On the ReSpeaker 2-Mic HAT the
+mics sit on **LINPUT1 / RINPUT1**:
 
 ```bash
-sudo -u <desktop-user> XDG_RUNTIME_DIR=/run/user/<uid> pw-record --target <source-id> /tmp/t.wav   # speak ~3s, Ctrl+C
-sudo -u <desktop-user> XDG_RUNTIME_DIR=/run/user/<uid> paplay /tmp/t.wav
+amixer -c 2 sset 'Capture' 75% cap
+amixer -c 2 sset 'Left Input Mixer Boost' on
+amixer -c 2 sset 'Right Input Mixer Boost' on
+amixer -c 2 sset 'Left Boost Mixer LINPUT1' on
+amixer -c 2 sset 'Right Boost Mixer RINPUT1' on
+amixer -c 2 sset 'Left Input Boost Mixer LINPUT1' 3   # PGA boost (+29 dB)
+amixer -c 2 sset 'Right Input Boost Mixer LINPUT1' 3
+amixer -c 2 sset 'ADC PCM' 75%
+sudo alsactl store 2                                   # persist, or it's silent after reboot
 ```
 
-If capture is silent, raise `Capture` and enable `Left/Right Input Mixer Boost` in
-`alsamixer -c 2`, then `alsactl store 2`.
+Verify capture has signal — record 3 s while talking and check the level (parec, not
+pw-record: PortAudio's ALSA→pulse bridge times out on PipeWire, so the voice service and
+these checks use the native pulse client):
+
+```bash
+SRC=alsa_input.platform-soc_107c000000_sound.stereo-fallback
+timeout 3 parec --format=s16le --rate=16000 --channels=1 -d "$SRC" > /tmp/spoke.pcm
+python3 -c "import numpy as np; a=np.fromfile('/tmp/spoke.pcm',dtype=np.int16); print('level',int(np.abs(a).mean()),'max',int(np.abs(a).max()))"
+```
+
+`level` in the hundreds+ = mics live. Still ~0 → the mics are on a different input pair;
+repeat the `Boost Mixer` lines for `LINPUT2/RINPUT2`, then `LINPUT3/RINPUT3`.
+
+> **`parec` gets zero bytes / blocks** even though the source is the default and RUNNING —
+> capture via the *default* source can come up empty; pass an explicit `-d <source>` (above),
+> and in Phase 5 pin `HOMECONTROL_VOICE_INPUT_DEVICE` to that source name rather than relying
+> on the default.
