@@ -8,15 +8,24 @@
   const dispatch = createEventDispatcher();
 
   let tab = "playlists"; // playlists | albums | search
+  let rootKind = "playlists";
   let rootItems = []; // grid for the playlists/albums tabs
+  let rootTotal = 0;
   let stack = []; // drill-down pages on top of a tab (tracks / artist)
   let query = "";
   let searchResults = null;
+  let searchTotals = null;
+  let searchOffset = 0;
   let showDevices = false;
   let loading = false;
   let error = "";
 
   $: page = stack[stack.length - 1] || null;
+  $: rootHasMore = rootItems.length < rootTotal;
+  $: tracksHasMore = page?.kind === "tracks" && page.tracks.length < page.total;
+  $: searchHasMore =
+    !!searchTotals &&
+    ["playlists", "albums", "artists", "tracks"].some((k) => (searchResults?.[k]?.length ?? 0) < (searchTotals[k] ?? 0));
 
   async function guard(fn, ...args) {
     loading = true;
@@ -34,20 +43,43 @@
   async function loadTab(t) {
     tab = t;
     stack = [];
+    searchResults = null;
+    searchTotals = null;
     error = "";
-    if (t === "playlists") rootItems = (await guard(commands.getPlaylists)).items ?? [];
-    else if (t === "albums") rootItems = (await guard(commands.getAlbums)).items ?? [];
+    if (t === "search") return;
+    rootKind = t;
+    rootItems = [];
+    rootTotal = 0;
+    const r = await guard(t === "playlists" ? commands.getPlaylists : commands.getAlbums, 0);
+    rootItems = r.items ?? [];
+    rootTotal = r.total ?? 0;
+  }
+
+  async function loadMoreRoot() {
+    const fn = rootKind === "playlists" ? commands.getPlaylists : commands.getAlbums;
+    const r = await guard(fn, rootItems.length);
+    rootItems = [...rootItems, ...(r.items ?? [])];
+    rootTotal = r.total ?? rootTotal;
   }
 
   onMount(() => loadTab("playlists"));
 
   async function openItem(item) {
-    if (item.type === "playlist") {
-      const { tracks } = await guard(commands.getPlaylistTracks, item.id);
-      stack = [...stack, { kind: "tracks", title: item.name, context_uri: item.uri, tracks: tracks ?? [] }];
-    } else if (item.type === "album") {
-      const { tracks } = await guard(commands.getAlbumTracks, item.id);
-      stack = [...stack, { kind: "tracks", title: item.name, context_uri: item.uri, tracks: tracks ?? [] }];
+    if (item.type === "playlist" || item.type === "album") {
+      const fn = item.type === "playlist" ? commands.getPlaylistTracks : commands.getAlbumTracks;
+      const r = await guard(fn, item.id, 0);
+      stack = [
+        ...stack,
+        {
+          kind: "tracks",
+          id: item.id,
+          ctype: item.type,
+          title: item.name,
+          context_uri: item.uri,
+          tracks: r.tracks ?? [],
+          total: r.total ?? 0,
+        },
+      ];
     } else if (item.type === "artist") {
       const a = await guard(commands.getArtist, item.id);
       stack = [...stack, { kind: "artist", title: item.name, top: a.top_tracks ?? [], albums: a.albums ?? [] }];
@@ -56,13 +88,36 @@
     }
   }
 
+  async function loadMoreTracks() {
+    const p = stack[stack.length - 1];
+    const fn = p.ctype === "playlist" ? commands.getPlaylistTracks : commands.getAlbumTracks;
+    const r = await guard(fn, p.id, p.tracks.length);
+    const updated = { ...p, tracks: [...p.tracks, ...(r.tracks ?? [])], total: r.total ?? p.total };
+    stack = [...stack.slice(0, -1), updated];
+  }
+
   const back = () => (stack = stack.slice(0, -1));
   const playContext = (uri, offset = null) => commands.playContent({ context_uri: uri, offset });
   const playTrackId = (id) => commands.playContent({ uris: [`spotify:track:${id}`] });
 
-  const runSearch = async () => {
-    if (query.trim()) searchResults = await guard(commands.search, query.trim());
-  };
+  async function runSearch() {
+    if (!query.trim()) return;
+    const r = await guard(commands.search, query.trim(), 0);
+    searchResults = r;
+    searchTotals = r.totals ?? {};
+    searchOffset = r.limit ?? 20;
+  }
+
+  async function loadMoreSearch() {
+    const r = await guard(commands.search, query.trim(), searchOffset);
+    const merged = { ...searchResults };
+    for (const k of ["playlists", "albums", "artists", "tracks"]) {
+      if (r[k]?.length) merged[k] = [...(searchResults[k] ?? []), ...r[k]];
+    }
+    searchResults = merged;
+    searchTotals = r.totals ?? searchTotals;
+    searchOffset += r.limit ?? 20;
+  }
 </script>
 
 <div class="browse">
@@ -76,14 +131,13 @@
       <div class="tabs">
         <button class:active={tab === "playlists"} on:click={() => loadTab("playlists")}>Playlists</button>
         <button class:active={tab === "albums"} on:click={() => loadTab("albums")}>Albums</button>
-        <button class:active={tab === "search"} on:click={() => { tab = "search"; stack = []; }}>Search</button>
+        <button class:active={tab === "search"} on:click={() => loadTab("search")}>Search</button>
       </div>
     {/if}
     <button class="devbtn" on:click={() => (showDevices = true)}>🔈 Device</button>
   </header>
 
   {#if error}<div class="error">{error}</div>{/if}
-  {#if loading}<div class="loading">Loading…</div>{/if}
 
   <div class="content">
     {#if page?.kind === "tracks"}
@@ -95,6 +149,7 @@
           <span class="ta">{t.artist}</span>
         </button>
       {/each}
+      {#if tracksHasMore}<button class="more" on:click={loadMoreTracks}>Load more</button>{/if}
     {:else if page?.kind === "artist"}
       <h4>Top tracks</h4>
       {#each page.top as t}
@@ -135,12 +190,16 @@
             {/if}
           {/if}
         {/each}
+        {#if searchHasMore}<button class="more" on:click={loadMoreSearch}>Load more</button>{/if}
       {/if}
     {:else}
       <div class="grid">
         {#each rootItems as it}<Tile item={it} on:open={() => openItem(it)} />{/each}
       </div>
+      {#if rootHasMore}<button class="more" on:click={loadMoreRoot}>Load more</button>{/if}
     {/if}
+
+    {#if loading}<div class="loading">Loading…</div>{/if}
   </div>
 </div>
 
@@ -256,6 +315,17 @@
     padding: 12px 18px;
     font-size: 17px;
     margin-bottom: 12px;
+    cursor: pointer;
+  }
+  .more {
+    display: block;
+    margin: 16px auto;
+    background: var(--surface);
+    color: var(--text);
+    border: none;
+    border-radius: 10px;
+    padding: 12px 28px;
+    font-size: 16px;
     cursor: pointer;
   }
   .searchbar {

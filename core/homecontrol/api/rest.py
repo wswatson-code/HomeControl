@@ -103,28 +103,30 @@ async def dismiss_timer(request: Request, timer_id: str) -> Snapshot:
 
 
 @router.get("/search")
-async def search(request: Request, q: str, types: str = "track,album,artist,playlist", limit: int = 20) -> dict:
-    return await _catalog(request).search(q, types, limit)
+async def search(
+    request: Request, q: str, types: str = "track,album,artist,playlist", limit: int = 20, offset: int = 0
+) -> dict:
+    return await _catalog(request).search(q, types, limit, offset)
 
 
 @router.get("/browse/playlists")
-async def browse_playlists(request: Request) -> dict:
-    return {"items": await _catalog(request).my_playlists()}
+async def browse_playlists(request: Request, offset: int = 0, limit: int = 50) -> dict:
+    return await _catalog(request).my_playlists(limit, offset)
 
 
 @router.get("/browse/albums")
-async def browse_albums(request: Request) -> dict:
-    return {"items": await _catalog(request).my_albums()}
+async def browse_albums(request: Request, offset: int = 0, limit: int = 50) -> dict:
+    return await _catalog(request).my_albums(limit, offset)
 
 
 @router.get("/browse/playlist/{playlist_id}")
-async def browse_playlist(request: Request, playlist_id: str) -> dict:
-    return {"tracks": await _catalog(request).playlist_tracks(playlist_id)}
+async def browse_playlist(request: Request, playlist_id: str, offset: int = 0, limit: int = 100) -> dict:
+    return await _catalog(request).playlist_tracks(playlist_id, limit, offset)
 
 
 @router.get("/browse/album/{album_id}")
-async def browse_album(request: Request, album_id: str) -> dict:
-    return {"tracks": await _catalog(request).album_tracks(album_id)}
+async def browse_album(request: Request, album_id: str, offset: int = 0, limit: int = 50) -> dict:
+    return await _catalog(request).album_tracks(album_id, limit, offset)
 
 
 @router.get("/browse/artist/{artist_id}")

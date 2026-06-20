@@ -148,35 +148,43 @@ class SpotifyWebClient:
             raise SpotifyError(f"GET {path} -> {resp.status_code} {resp.text}")
         return resp.json()
 
-    async def search(self, query: str, types: str = "track,album,artist,playlist", limit: int = 20) -> dict:
-        data = await self._get_json("/search", q=query, type=types, limit=limit)
-        out: dict[str, list[BrowseItem]] = {}
-        if "tracks" in data:
-            out["tracks"] = [_track_item(t) for t in data["tracks"]["items"] if t]
-        if "albums" in data:
-            out["albums"] = [_album_item(a) for a in data["albums"]["items"] if a]
-        if "artists" in data:
-            out["artists"] = [_artist_item(a) for a in data["artists"]["items"] if a]
-        if "playlists" in data:
-            out["playlists"] = [_playlist_item(p) for p in data["playlists"]["items"] if p]
+    async def search(
+        self, query: str, types: str = "track,album,artist,playlist", limit: int = 20, offset: int = 0
+    ) -> dict:
+        data = await self._get_json("/search", q=query, type=types, limit=limit, offset=offset)
+        out: dict = {"offset": offset, "limit": limit, "totals": {}}
+        normalizers = {
+            "tracks": _track_item,
+            "albums": _album_item,
+            "artists": _artist_item,
+            "playlists": _playlist_item,
+        }
+        for key, fn in normalizers.items():
+            if key in data:
+                out[key] = [fn(x) for x in data[key]["items"] if x]
+                out["totals"][key] = data[key].get("total", 0)
         return out
 
-    async def my_playlists(self, limit: int = 50) -> list[BrowseItem]:
-        data = await self._get_json("/me/playlists", limit=limit)
-        return [_playlist_item(p) for p in data.get("items", []) if p]
+    async def my_playlists(self, limit: int = 50, offset: int = 0) -> dict:
+        data = await self._get_json("/me/playlists", limit=limit, offset=offset)
+        items = [_playlist_item(p) for p in data.get("items", []) if p]
+        return {"items": items, "total": data.get("total", 0), "offset": offset, "limit": limit}
 
-    async def my_albums(self, limit: int = 50) -> list[BrowseItem]:
-        data = await self._get_json("/me/albums", limit=limit)
-        return [_album_item(it["album"]) for it in data.get("items", []) if it.get("album")]
+    async def my_albums(self, limit: int = 50, offset: int = 0) -> dict:
+        data = await self._get_json("/me/albums", limit=limit, offset=offset)
+        items = [_album_item(it["album"]) for it in data.get("items", []) if it.get("album")]
+        return {"items": items, "total": data.get("total", 0), "offset": offset, "limit": limit}
 
-    async def playlist_tracks(self, playlist_id: str, limit: int = 100) -> list[Track]:
-        data = await self._get_json(f"/playlists/{playlist_id}/tracks", limit=limit)
-        return [_to_track(it["track"]) for it in data.get("items", []) if it.get("track")]
+    async def playlist_tracks(self, playlist_id: str, limit: int = 100, offset: int = 0) -> dict:
+        data = await self._get_json(f"/playlists/{playlist_id}/tracks", limit=limit, offset=offset)
+        tracks = [_to_track(it["track"]) for it in data.get("items", []) if it.get("track")]
+        return {"tracks": tracks, "total": data.get("total", 0), "offset": offset, "limit": limit}
 
-    async def album_tracks(self, album_id: str, limit: int = 50) -> list[Track]:
+    async def album_tracks(self, album_id: str, limit: int = 50, offset: int = 0) -> dict:
         # Album-track items carry no album image; the UI shows the album art at the header.
-        data = await self._get_json(f"/albums/{album_id}/tracks", limit=limit)
-        return [_to_track(t) for t in data.get("items", []) if t]
+        data = await self._get_json(f"/albums/{album_id}/tracks", limit=limit, offset=offset)
+        tracks = [_to_track(t) for t in data.get("items", []) if t]
+        return {"tracks": tracks, "total": data.get("total", 0), "offset": offset, "limit": limit}
 
     async def artist(self, artist_id: str) -> dict:
         top = await self._get_json(f"/artists/{artist_id}/top-tracks", market="from_token")

@@ -145,23 +145,38 @@ class _FakeCatalog:
         self.played = None
         self.transferred = None
 
-    async def my_playlists(self, limit=50):
-        return [BrowseItem(id="p1", uri="spotify:playlist:p1", type="playlist", name="Chill")]
+    async def my_playlists(self, limit=50, offset=0):
+        return {
+            "items": [BrowseItem(id="p1", uri="spotify:playlist:p1", type="playlist", name="Chill")],
+            "total": 120,
+            "offset": offset,
+            "limit": limit,
+        }
 
-    async def my_albums(self, limit=50):
-        return [BrowseItem(id="a1", uri="spotify:album:a1", type="album", name="OK Computer")]
+    async def my_albums(self, limit=50, offset=0):
+        return {
+            "items": [BrowseItem(id="a1", uri="spotify:album:a1", type="album", name="OK Computer")],
+            "total": 1,
+            "offset": offset,
+            "limit": limit,
+        }
 
-    async def playlist_tracks(self, playlist_id, limit=100):
-        return [Track(id="t1", title="Song", artist="Band")]
+    async def playlist_tracks(self, playlist_id, limit=100, offset=0):
+        return {"tracks": [Track(id="t1", title="Song", artist="Band")], "total": 1, "offset": offset, "limit": limit}
 
-    async def album_tracks(self, album_id, limit=50):
-        return [Track(id="t2", title="Track", artist="Band")]
+    async def album_tracks(self, album_id, limit=50, offset=0):
+        return {"tracks": [Track(id="t2", title="Track", artist="Band")], "total": 1, "offset": offset, "limit": limit}
 
     async def artist(self, artist_id):
         return {"top_tracks": [Track(id="t3", title="Hit", artist="Band")], "albums": []}
 
-    async def search(self, query, types="track,album,artist,playlist", limit=20):
-        return {"tracks": [BrowseItem(id="t4", uri="spotify:track:t4", type="track", name="Found")]}
+    async def search(self, query, types="track,album,artist,playlist", limit=20, offset=0):
+        return {
+            "tracks": [BrowseItem(id="t4", uri="spotify:track:t4", type="track", name="Found")],
+            "totals": {"tracks": 1},
+            "offset": offset,
+            "limit": limit,
+        }
 
     async def list_devices(self):
         return [Device(id="d1", name="Kitchen", is_active=True)]
@@ -192,8 +207,14 @@ def test_browse_requires_catalog(client):
 
 def test_browse_playlists(browse_client):
     client, _ = browse_client
-    items = client.get("/api/browse/playlists").json()["items"]
-    assert items[0]["name"] == "Chill" and items[0]["type"] == "playlist"
+    body = client.get("/api/browse/playlists").json()
+    assert body["items"][0]["name"] == "Chill" and body["items"][0]["type"] == "playlist"
+    assert body["total"] == 120  # UI uses total vs loaded count to show "load more"
+
+
+def test_browse_pagination_passthrough(browse_client):
+    client, _ = browse_client
+    assert client.get("/api/browse/playlists", params={"offset": 50}).json()["offset"] == 50
 
 
 def test_search(browse_client):

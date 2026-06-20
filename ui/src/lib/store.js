@@ -118,11 +118,12 @@ export const commands = {
   dismissTimer: (id) => del(`/timer/${id}`),
 
   // --- browse (Spotify catalog) -------------------------------------------------
-  search: (q) => getJSON(`/search?q=${encodeURIComponent(q)}`),
-  getPlaylists: () => getJSON("/browse/playlists"),
-  getAlbums: () => getJSON("/browse/albums"),
-  getPlaylistTracks: (id) => getJSON(`/browse/playlist/${id}`),
-  getAlbumTracks: (id) => getJSON(`/browse/album/${id}`),
+  // All list endpoints page via ?offset and return { ..., total } (search: { ..., totals }).
+  search: (q, offset = 0) => getJSON(`/search?q=${encodeURIComponent(q)}&offset=${offset}`),
+  getPlaylists: (offset = 0) => getJSON(`/browse/playlists?offset=${offset}`),
+  getAlbums: (offset = 0) => getJSON(`/browse/albums?offset=${offset}`),
+  getPlaylistTracks: (id, offset = 0) => getJSON(`/browse/playlist/${id}?offset=${offset}`),
+  getAlbumTracks: (id, offset = 0) => getJSON(`/browse/album/${id}?offset=${offset}`),
   getArtist: (id) => getJSON(`/browse/artist/${id}`),
   getDevices: () => getJSON("/devices"),
   // Start playback on the chosen target device (null = current/active device).
