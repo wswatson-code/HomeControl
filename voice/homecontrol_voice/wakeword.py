@@ -18,21 +18,23 @@ log = logging.getLogger(__name__)
 
 
 class WakeWord:
-    def __init__(self, model: str, threshold: float, sample_rate: int, device: str = "") -> None:
+    def __init__(self, models: str, threshold: float, sample_rate: int, device: str = "") -> None:
         self._threshold = threshold
         self._sample_rate = sample_rate
         self._device = device
         # ONNX backend (not the default tflite): tflite-runtime has no Python 3.13 wheel,
-        # so the pipeline runs openWakeWord on onnxruntime. `model` is a bundled name
-        # ("hey_jarvis") or a path to an .onnx model.
-        self._model = Model(wakeword_models=[model], inference_framework="onnx")
-        self._key = next(iter(self._model.models))
+        # so the pipeline runs openWakeWord on onnxruntime. `models` is a comma-separated
+        # list of bundled names ("hey_jarvis,alexa") and/or paths to .onnx models; the unit
+        # wakes on whichever scores highest above the threshold.
+        names = [m.strip() for m in models.split(",") if m.strip()]
+        self._model = Model(wakeword_models=names, inference_framework="onnx")
 
     def wait_for_wake(self) -> None:
-        """Block until the wake word is detected. Reads the mic frame by frame."""
+        """Block until any configured wake word is detected. Reads the mic frame by frame."""
         for frame in frame_stream(self._sample_rate, self._device):
             scores = self._model.predict(np.asarray(frame, dtype=np.int16))
-            if scores.get(self._key, 0.0) >= self._threshold:
-                log.info("wake word detected (%.2f)", scores[self._key])
+            hit = max(scores, key=scores.get, default=None)
+            if hit is not None and scores[hit] >= self._threshold:
+                log.info("wake word detected: %s (%.2f)", hit, scores[hit])
                 self._model.reset()
                 return

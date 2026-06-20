@@ -77,6 +77,8 @@ grep -q HOMECONTROL_VOICE_WAKE_MODEL /etc/homecontrol/unit.env 2>/dev/null || ca
 
 # --- Phase 5: voice (wake word + whisper.cpp + Piper) ---
 # Defaults match phase5-voice.sh's install layout; override per unit as needed.
+# WAKE_MODEL: one or more (comma-separated) bundled names (alexa, hey_jarvis, hey_mycroft,
+# hey_rhasspy) and/or .onnx paths; the unit wakes on any of them.
 HOMECONTROL_VOICE_WAKE_MODEL=hey_jarvis
 HOMECONTROL_VOICE_WAKE_THRESHOLD=0.5
 HOMECONTROL_VOICE_COMMAND_SECONDS=5
