@@ -43,10 +43,23 @@ sudo -u "${SERVICE_USER}" "${INSTALL_DIR}/core/.venv/bin/pip" install --upgrade 
 sudo -u "${SERVICE_USER}" "${INSTALL_DIR}/core/.venv/bin/pip" install -e "${INSTALL_DIR}/core"
 
 echo "==> Build kiosk UI (requires Node; skipped if absent)"
-if command -v npm >/dev/null 2>&1; then
-  (cd "${INSTALL_DIR}/ui" && sudo -u "${SERVICE_USER}" npm ci && sudo -u "${SERVICE_USER}" npm run build)
+# node/npm is per-user via nvm, so it's absent for root (this script) and the nologin service
+# user — and a login shell does NOT load nvm (Debian .bashrc returns early when
+# non-interactive). Source nvm.sh explicitly as the invoking user, build in the checkout,
+# then copy dist into /opt (which that user can't write directly).
+BUILD_USER="${SUDO_USER:-root}"
+BUILD_HOME="$(getent passwd "${BUILD_USER}" | cut -d: -f6)"
+if sudo -u "${BUILD_USER}" env HOME="${BUILD_HOME}" bash -c '
+      export NVM_DIR="$HOME/.nvm"
+      [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" >/dev/null 2>&1
+      command -v npm >/dev/null 2>&1 || exit 1
+      cd "'"${REPO_DIR}"'/ui" && npm ci && npm run build
+    '; then
+  rm -rf "${INSTALL_DIR}/ui/dist"
+  cp -r "${REPO_DIR}/ui/dist" "${INSTALL_DIR}/ui/dist"
+  chown -R "${SERVICE_USER}:${SERVICE_USER}" "${INSTALL_DIR}/ui/dist"
 else
-  echo "    npm not found — install Node and run 'npm ci && npm run build' in ui/ before first boot"
+  echo "    npm not found for ${BUILD_USER} — build ui/ ('npm ci && npm run build') and copy dist/ to ${INSTALL_DIR}/ui/dist before first boot"
 fi
 
 echo "==> Unit identity (/etc/homecontrol/unit.env)"
