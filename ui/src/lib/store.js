@@ -23,6 +23,9 @@ export const voice = writable({ phase: "idle", transcript: "", reply: "" });
 export const timers = writable([]);
 // Browse playback target: a Spotify device id, or null = the user's current/active device.
 export const targetDevice = writable(null);
+// Whether the Browse screen is open (shared so the now-playing button + startup auto-open
+// can both drive it).
+export const showBrowse = writable(false);
 
 let socket = null;
 let reconnectTimer = null;

@@ -1,13 +1,11 @@
 <script>
   import { onMount } from "svelte";
-  import { connect, connected, unit, player, commands } from "./lib/store.js";
+  import { connect, connected, unit, player, showBrowse, commands } from "./lib/store.js";
   import { initAlarmAudio } from "./lib/alarm.js";
   import NowPlaying from "./lib/NowPlaying.svelte";
   import Timers from "./lib/Timers.svelte";
   import VoiceOverlay from "./lib/VoiceOverlay.svelte";
   import Browse from "./lib/Browse.svelte";
-
-  let showBrowse = false;
 
   // On first snapshot ($unit becomes set), if nothing is loaded, open Browse so a freshly
   // booted unit lands on something useful instead of an empty now-playing. One-shot — it
@@ -15,7 +13,7 @@
   let didStartupCheck = false;
   $: if (!didStartupCheck && $unit) {
     didStartupCheck = true;
-    if (!$player.track) showBrowse = true;
+    if (!$player.track) showBrowse.set(true);
   }
 
   onMount(() => {
@@ -28,7 +26,6 @@
   <header>
     <span class="room">{$unit ? $unit.room : "HomeControl"}</span>
     <span class="header-right">
-      <button class="browse-btn" on:click={() => (showBrowse = true)}>Browse</button>
       <span class="status" class:online={$connected}>
         {$connected ? "●" : "○"}
       </span>
@@ -41,8 +38,8 @@
   <Timers />
   <VoiceOverlay />
 
-  {#if showBrowse}
-    <Browse on:close={() => (showBrowse = false)} />
+  {#if $showBrowse}
+    <Browse on:close={() => showBrowse.set(false)} />
   {/if}
 
   {#if !$connected}
@@ -80,15 +77,6 @@
   }
   .status.online {
     color: var(--accent);
-  }
-  .browse-btn {
-    background: var(--surface);
-    border: none;
-    color: var(--text);
-    font-size: 15px;
-    padding: 6px 14px;
-    border-radius: 8px;
-    cursor: pointer;
   }
   .exit {
     background: none;
