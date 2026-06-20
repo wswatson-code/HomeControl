@@ -22,8 +22,10 @@ class WakeWord:
         self._threshold = threshold
         self._sample_rate = sample_rate
         self._device = device
-        # `model` is a bundled name ("hey_jarvis") or a path to a .tflite/.onnx model.
-        self._model = Model(wakeword_models=[model])
+        # ONNX backend (not the default tflite): tflite-runtime has no Python 3.13 wheel,
+        # so the pipeline runs openWakeWord on onnxruntime. `model` is a bundled name
+        # ("hey_jarvis") or a path to an .onnx model.
+        self._model = Model(wakeword_models=[model], inference_framework="onnx")
         self._key = next(iter(self._model.models))
 
     def wait_for_wake(self) -> None:

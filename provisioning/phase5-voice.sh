@@ -29,8 +29,12 @@ echo "==> Voice venv + Python deps"
 python3 -m venv "${VOICE_DIR}/.venv"
 "${VOICE_DIR}/.venv/bin/pip" install --upgrade pip
 "${VOICE_DIR}/.venv/bin/pip" install -e "${VOICE_DIR}[pipeline]"
+# openWakeWord, with NO deps: its tflite-runtime requirement has no Python 3.13 wheel.
+# We run it on the ONNX backend (onnxruntime came in via [pipeline]); its other runtime
+# deps (numpy/scipy/tqdm/requests) are pinned in [pipeline] too.
+"${VOICE_DIR}/.venv/bin/pip" install --no-deps "openwakeword>=0.6"
 
-echo "==> Pre-download openWakeWord models (so the service never downloads at runtime)"
+echo "==> Pre-download openWakeWord ONNX models (so the service never downloads at runtime)"
 "${VOICE_DIR}/.venv/bin/python" -c "import openwakeword.utils as u; u.download_models()"
 
 mkdir -p "${MODELS_DIR}"

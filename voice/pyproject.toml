@@ -13,10 +13,18 @@ dependencies = [
 # base so the intent parser and dispatch logic stay importable and testable anywhere.
 # (whisper.cpp and Piper are invoked as binaries via subprocess, built/installed by the
 # phase script — they are not Python packages here.)
+#
+# openWakeWord is NOT listed here: its tflite-runtime dependency has no wheel for Python
+# 3.13 (Pi OS Trixie). phase5-voice.sh installs it with --no-deps and we run it on the ONNX
+# backend (onnxruntime, below) instead — see wakeword.py.
 pipeline = [
-    "openwakeword>=0.6",
     "sounddevice>=0.4",
     "numpy>=1.26",
+    "onnxruntime>=1.17",
+    # openWakeWord's own runtime deps (since we install it --no-deps):
+    "scipy>=1.11",
+    "tqdm>=4.0",
+    "requests>=2.0",
 ]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "ruff>=0.4"]
 
