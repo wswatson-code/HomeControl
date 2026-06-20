@@ -37,12 +37,14 @@ class Pipeline:
             actions = Actions(client, cfg.volume_step)
             log.info("voice pipeline up; wake word=%r", cfg.wake_model)
             while True:
-                await actions.report_state("idle")
-                await asyncio.to_thread(self._wake.wait_for_wake)
                 try:
+                    await actions.report_state("idle")
+                    await asyncio.to_thread(self._wake.wait_for_wake)
                     await self._handle_utterance(actions)
-                except Exception:  # noqa: BLE001 — one bad utterance must not kill the loop
-                    log.exception("utterance failed")
+                except Exception:  # noqa: BLE001 — a bad utterance or mic blip must not kill the loop
+                    # Includes AudioError from a dead mic; sleep so we don't spin if it stays dead.
+                    log.exception("voice cycle failed")
+                    await asyncio.sleep(1)
 
     async def _handle_utterance(self, actions: Actions) -> None:
         cfg = self._cfg

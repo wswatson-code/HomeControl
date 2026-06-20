@@ -24,6 +24,11 @@ import numpy as np
 FRAME_SAMPLES = 1280
 
 
+class AudioError(RuntimeError):
+    """Raised when capture fails (parec exits / mic gone), so the failure is visible
+    instead of degrading into empty audio that whisper reads as 'didn't catch that'."""
+
+
 def _parec_cmd(sample_rate: int, device: str) -> list[str]:
     cmd = ["parec", "--format=s16le", f"--rate={sample_rate}", "--channels=1"]
     if device:
@@ -43,14 +48,19 @@ def _read_exact(stream: BinaryIO, n: int) -> bytes | None:
 
 
 def frame_stream(sample_rate: int, device: str = "") -> Iterator[np.ndarray]:
-    """Yield consecutive int16 mono frames from the mic until the caller stops iterating."""
+    """Yield consecutive int16 mono frames from the mic until the caller stops iterating.
+
+    Raises AudioError if parec exits unexpectedly — otherwise a dead mic would end the
+    generator quietly and the caller would treat it as a (false) wake. parec's stderr is
+    left inherited so its diagnostics land in the journal.
+    """
     proc = subprocess.Popen(_parec_cmd(sample_rate, device), stdout=subprocess.PIPE)
     try:
         nbytes = FRAME_SAMPLES * 2  # int16
         while True:
             buf = _read_exact(proc.stdout, nbytes)
             if buf is None:
-                break
+                raise AudioError(f"mic capture stream ended (parec exited rc={proc.poll()})")
             yield np.frombuffer(buf, dtype=np.int16)
     finally:
         proc.terminate()
@@ -58,14 +68,22 @@ def frame_stream(sample_rate: int, device: str = "") -> Iterator[np.ndarray]:
 
 
 def record(seconds: float, sample_rate: int, device: str = "") -> np.ndarray:
-    """Record a fixed window of int16 mono audio (the command after the wake word)."""
+    """Record a fixed window of int16 mono audio (the command after the wake word).
+
+    Raises AudioError on a short/failed capture instead of returning empty audio: empty
+    audio transcribes to "" and looks exactly like a user who said nothing, hiding a dead
+    mic. We capture parec's stderr to put the real reason in the error.
+    """
     total = int(seconds * sample_rate) * 2  # bytes
-    proc = subprocess.Popen(_parec_cmd(sample_rate, device), stdout=subprocess.PIPE)
+    proc = subprocess.Popen(_parec_cmd(sample_rate, device), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
-        buf = _read_exact(proc.stdout, total) or b""
+        buf = _read_exact(proc.stdout, total)
     finally:
         proc.terminate()
         proc.wait()
+    if buf is None:
+        err = (proc.stderr.read() if proc.stderr else b"").decode(errors="replace").strip()
+        raise AudioError(f"mic capture failed (parec rc={proc.returncode}): {err or 'stream closed early'}")
     return np.frombuffer(buf, dtype=np.int16)
 
 

@@ -1,11 +1,15 @@
 <script>
   import { onMount } from "svelte";
   import { connect, connected, unit, commands } from "./lib/store.js";
+  import { initAlarmAudio } from "./lib/alarm.js";
   import NowPlaying from "./lib/NowPlaying.svelte";
   import Timers from "./lib/Timers.svelte";
   import VoiceOverlay from "./lib/VoiceOverlay.svelte";
 
-  onMount(connect);
+  onMount(() => {
+    connect();
+    initAlarmAudio();
+  });
 </script>
 
 <main>

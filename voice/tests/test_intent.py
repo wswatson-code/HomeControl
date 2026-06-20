@@ -85,6 +85,21 @@ def test_timer_beats_volume_set_branch():
     assert parse("set a timer for 2 minutes").kind == IntentKind.CREATE_TIMER
 
 
+@pytest.mark.parametrize(
+    "text,kind",
+    [
+        ("go back", IntentKind.PREVIOUS),
+        ("back", IntentKind.PREVIOUS),
+        ("previous", IntentKind.PREVIOUS),
+        # "back" must not hijack a PLAY, and must be a token not a substring.
+        ("play that song back", IntentKind.PLAY),
+        ("playback", IntentKind.UNKNOWN),
+    ],
+)
+def test_back_does_not_hijack_play(text, kind):
+    assert parse(text).kind == kind
+
+
 @pytest.mark.parametrize("text", ["", "what's the weather", "tell me a joke", "asdf qwer"])
 def test_unknown(text):
     assert parse(text).kind == IntentKind.UNKNOWN

@@ -48,10 +48,13 @@ class VoiceConfig:
     piper_bin: str = _get("PIPER_BIN", "/opt/homecontrol/voice/piper/piper")
     piper_voice: str = _get("PIPER_VOICE", "/opt/homecontrol/voice/models/en_US-amy-medium.onnx")
 
-    # Audio. Device strings are passed to sounddevice; empty = system default (the HAT,
-    # once it's the PipeWire default — see docs/audio-hat.md).
+    # Audio. Device strings are PipeWire source/sink names for parec/paplay; empty = system
+    # default (the HAT, once it's the PipeWire default — see docs/audio-hat.md).
     input_device: str = _get("INPUT_DEVICE", "")
     output_device: str = _get("OUTPUT_DEVICE", "")
+    # 16 kHz is not a tunable: openWakeWord and whisper.cpp are both fixed at 16 kHz, and the
+    # 80 ms wake-word frame size assumes it. Exposed only so the guard below can reject a
+    # mistaken override loudly instead of silently feeding both models garbage.
     sample_rate: int = _get_int("SAMPLE_RATE", 16000)
 
     # How long to record after the wake word before transcribing (seconds).
@@ -59,3 +62,10 @@ class VoiceConfig:
 
     # Relative volume step for "louder"/"quieter".
     volume_step: int = _get_int("VOLUME_STEP", 10)
+
+    def __post_init__(self) -> None:
+        if self.sample_rate != 16000:
+            raise ValueError(
+                f"HOMECONTROL_VOICE_SAMPLE_RATE must be 16000 (openWakeWord + whisper.cpp "
+                f"require it); got {self.sample_rate}"
+            )

@@ -163,7 +163,13 @@ def parse(text: str) -> Intent:
     # Transport.
     if any(w in tokens for w in ("next", "skip", "forward")):
         return Intent(IntentKind.NEXT)
-    if any(w in joined for w in ("previous", "go back", "last track", "back")):
+    # "back" only as a standalone token (not substring — avoids "playback"/"background") and
+    # never when "play" is present ("play that song back" is a PLAY, not PREVIOUS).
+    if (
+        "previous" in tokens
+        or any(p in joined for p in ("go back", "last track"))
+        or ("back" in tokens and "play" not in tokens)
+    ):
         return Intent(IntentKind.PREVIOUS)
     if any(w in tokens for w in ("pause", "stop")):
         return Intent(IntentKind.PAUSE)
