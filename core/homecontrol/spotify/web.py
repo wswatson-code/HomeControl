@@ -176,28 +176,30 @@ class SpotifyWebClient:
         return {"items": items, "total": data.get("total", 0), "offset": offset, "limit": limit}
 
     async def playlist_tracks(self, playlist_id: str, limit: int = 100, offset: int = 0) -> dict:
-        # market=from_token: required for track relinking/availability (its absence 400s).
-        # Guard null items (Spotify includes them) and skip non-track entries (podcast
-        # episodes have no track/artists) so one odd row can't 500 the whole playlist.
-        data = await self._get_json(
-            f"/playlists/{playlist_id}/tracks", market="from_token", limit=limit, offset=offset
-        )
+        # No market param: market=from_token requires the user-read-private scope (its
+        # absence 403s); without market, Spotify uses the token's implicit market and tracks
+        # still come back. Guard null items (Spotify includes them) and skip non-track rows
+        # (podcast episodes have no track/artists) so one odd row can't break the playlist.
+        data = await self._get_json(f"/playlists/{playlist_id}/tracks", limit=limit, offset=offset)
         tracks = [_to_track(it["track"]) for it in data.get("items", []) if it and it.get("track")]
         return {"tracks": tracks, "total": data.get("total", 0), "offset": offset, "limit": limit}
 
     async def album_tracks(self, album_id: str, limit: int = 50, offset: int = 0) -> dict:
         # Album-track items carry no album image; the UI shows the album art at the header.
-        data = await self._get_json(f"/albums/{album_id}/tracks", market="from_token", limit=limit, offset=offset)
+        data = await self._get_json(f"/albums/{album_id}/tracks", limit=limit, offset=offset)
         tracks = [_to_track(t) for t in data.get("items", []) if t]
         return {"tracks": tracks, "total": data.get("total", 0), "offset": offset, "limit": limit}
 
     async def artist(self, artist_id: str) -> dict:
-        top = await self._get_json(f"/artists/{artist_id}/top-tracks", market="from_token")
+        # top-tracks historically required market; we omit it (from_token needs user-read-
+        # private). If Spotify still rejects it, don't fail the whole view — show albums.
+        try:
+            top = await self._get_json(f"/artists/{artist_id}/top-tracks")
+            top_tracks = [_to_track(t) for t in top.get("tracks", []) if t]
+        except SpotifyError:
+            top_tracks = []
         albums = await self._get_json(f"/artists/{artist_id}/albums", include_groups="album,single", limit=50)
-        return {
-            "top_tracks": [_to_track(t) for t in top.get("tracks", []) if t],
-            "albums": [_album_item(a) for a in albums.get("items", []) if a],
-        }
+        return {"top_tracks": top_tracks, "albums": [_album_item(a) for a in albums.get("items", []) if a]}
 
     async def list_devices(self) -> list[Device]:
         data = await self._get_json("/me/player/devices")
