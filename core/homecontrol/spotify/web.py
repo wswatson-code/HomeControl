@@ -149,7 +149,7 @@ class SpotifyWebClient:
         return resp.json()
 
     async def search(
-        self, query: str, types: str = "track,album,artist,playlist", limit: int = 20, offset: int = 0
+        self, query: str, types: str = "track,album,artist,playlist", limit: int = 10, offset: int = 0
     ) -> dict:
         data = await self._get_json("/search", q=query, type=types, limit=limit, offset=offset)
         out: dict = {"offset": offset, "limit": limit, "totals": {}}

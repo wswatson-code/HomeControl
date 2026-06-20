@@ -331,7 +331,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "default": 20,
+              "default": 10,
               "title": "Limit"
             }
           },

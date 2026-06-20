@@ -104,8 +104,10 @@ async def dismiss_timer(request: Request, timer_id: str) -> Snapshot:
 
 @router.get("/search")
 async def search(
-    request: Request, q: str, types: str = "track,album,artist,playlist", limit: int = 20, offset: int = 0
+    request: Request, q: str, types: str = "track,album,artist,playlist", limit: int = 10, offset: int = 0
 ) -> dict:
+    # limit kept small: multi-type search (4 types) over the dev-mode result window 400s
+    # ("Invalid limit") at higher values; 10/type works and pagination fetches more.
     return await _catalog(request).search(q, types, limit, offset)
 
 
