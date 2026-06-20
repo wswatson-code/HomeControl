@@ -21,7 +21,10 @@ pipeline = [
     "sounddevice>=0.4",
     "numpy>=1.26",
     "onnxruntime>=1.17",
-    # openWakeWord's own runtime deps (since we install it --no-deps):
+    # openWakeWord's own runtime deps (since we install it --no-deps): it imports sklearn
+    # at package load (custom_verifier_model), so scikit-learn is required even though we
+    # never train a custom verifier.
+    "scikit-learn>=1.3",
     "scipy>=1.11",
     "tqdm>=4.0",
     "requests>=2.0",
